@@ -3,84 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nwata Raw Logs Dashboard - Activity Monitoring</title>
+    <title>Nwata Dashboard - Activity Analytics</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 20px;
             background: #f8f9fa;
             color: #333;
         }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
+
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
         }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            transition: width 0.3s ease;
+            overflow-y: auto;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .sidebar-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        .logo {
+            font-size: 1.3em;
+            font-weight: bold;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar.collapsed .logo {
+            display: none;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .menu-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .menu-item.active {
+            background: #ff6600;
+        }
+
+        .menu-icon {
+            min-width: 24px;
+            font-size: 1.2em;
+        }
+
+        .menu-label {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar.collapsed .menu-label {
+            display: none;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        /* Header */
         .header {
             background: white;
-            padding: 20px;
+            padding: 20px 30px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .stats-grid {
+
+        .header h1 {
+            font-size: 1.8em;
+            color: #2c3e50;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        /* Summary Cards (KPI) */
+        .summary-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
         }
-        .stat-card {
+
+        .kpi-card {
             background: white;
-            padding: 20px;
+            padding: 25px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            text-align: center;
-            border-left: 4px solid #007bff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-top: 4px solid #ff6600;
         }
-        .stat-number {
-            font-size: 2.2em;
-            font-weight: bold;
-            color: #007bff;
-            margin: 10px 0;
-        }
-        .stat-label {
+
+        .kpi-label {
             color: #666;
             font-size: 0.9em;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            margin-bottom: 8px;
         }
-        .section {
+
+        .kpi-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #ff6600;
+            margin-bottom: 5px;
+        }
+
+        .kpi-subtext {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        /* Canvas Area */
+        .canvas-area {
             background: white;
-            padding: 25px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 30px;
+        }
+
+        .canvas-section {
+            display: none;
+        }
+
+        .canvas-section.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #ff6600;
+            padding-bottom: 10px;
+        }
+
+        /* App Usage Grid */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
             margin-bottom: 20px;
         }
-        .section h2 {
-            margin-top: 0;
-            color: #333;
-            border-bottom: 3px solid #007bff;
-            padding-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+
+        .app-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
         }
-        .section h2:before {
+
+        .app-card::before {
             content: '';
-            width: 6px;
-            height: 24px;
-            background: #007bff;
-            border-radius: 3px;
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
         }
+
+        .app-card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .app-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 12px;
+        }
+
+        .app-stats-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .app-stat-label {
+            opacity: 0.9;
+        }
+
+        .app-stat-value {
+            font-weight: 600;
+        }
+
+        /* Activity Feed */
         .activity-feed {
             max-height: 500px;
             overflow-y: auto;
             border: 1px solid #e9ecef;
             border-radius: 8px;
         }
+
         .activity-item {
             padding: 15px;
             border-bottom: 1px solid #f0f0f0;
@@ -89,327 +270,360 @@
             align-items: center;
             transition: background-color 0.2s;
         }
+
         .activity-item:hover {
             background-color: #f8f9fa;
         }
+
         .activity-info {
             flex: 1;
         }
+
         .activity-app {
             font-weight: 600;
-            color: #007bff;
-            font-size: 1.1em;
+            color: #ff6600;
+            font-size: 1em;
         }
+
         .activity-window {
             color: #666;
             font-size: 0.9em;
-            margin: 4px 0;
+            margin-top: 4px;
         }
+
         .activity-time {
             color: #888;
             font-size: 0.8em;
+            margin-top: 4px;
         }
+
         .activity-duration {
             background: #28a745;
             color: white;
-            padding: 4px 8px;
+            padding: 6px 12px;
             border-radius: 12px;
-            font-size: 0.8em;
+            font-size: 0.85em;
             font-weight: 500;
+            white-space: nowrap;
         }
+
+        /* Hourly Timeline */
         .hourly-timeline {
             display: flex;
             gap: 8px;
             overflow-x: auto;
-            padding: 10px 0;
+            padding: 15px 0;
+            margin-bottom: 20px;
         }
+
         .hour-block {
-            min-width: 80px;
+            min-width: 70px;
             text-align: center;
-            padding: 10px;
+            padding: 12px 8px;
             background: #f8f9fa;
             border-radius: 8px;
             border: 1px solid #e9ecef;
+            flex-shrink: 0;
         }
+
         .hour-label {
             font-weight: 600;
             color: #333;
-            font-size: 0.9em;
+            font-size: 0.85em;
         }
+
         .hour-count {
-            color: #007bff;
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        .hour-duration {
-            color: #28a745;
-            font-size: 0.8em;
-        }
-        .app-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
-        }
-        .app-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            position: relative;
-            overflow: hidden;
-        }
-        .app-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100px;
-            height: 100px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
-            transform: translate(30px, -30px);
-        }
-        .app-name {
+            color: #ff6600;
             font-size: 1.3em;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin: 6px 0;
         }
-        .app-stats {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
+
+        .hour-duration {
+            color: #28a745;
+            font-size: 0.75em;
         }
-        .app-stat {
+
+        /* Heatmap */
+        .heatmap {
+            width: 100%;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        .heatmap-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        .heatmap-table th,
+        .heatmap-table td {
+            padding: 10px;
             text-align: center;
+            border: 1px solid #e9ecef;
         }
-        .app-stat-value {
-            font-size: 1.5em;
-            font-weight: bold;
-        }
-        .app-stat-label {
-            font-size: 0.8em;
-            opacity: 0.9;
-        }
-        .session-item {
+
+        .heatmap-table th {
             background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border-left: 4px solid #28a745;
-        }
-        .session-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        .session-time {
             font-weight: 600;
-            color: #333;
         }
-        .session-duration {
-            background: #28a745;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.8em;
-        }
-        .session-details {
-            color: #666;
-            font-size: 0.9em;
-        }
-        .category-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-        }
-        .category-card {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-        }
-        .refresh-btn {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
+
+        .heatmap-cell {
+            border-radius: 4px;
             font-weight: 500;
-            transition: background-color 0.2s;
+            cursor: pointer;
         }
-        .refresh-btn:hover {
-            background: #0056b3;
+
+        .heatmap-cell:hover {
+            opacity: 0.8;
         }
-        .last-updated {
-            color: #666;
-            font-size: 0.8em;
-        }
-        .empty-state {
-            text-align: center;
-            color: #666;
-            padding: 60px 20px;
-        }
-        .empty-state h3 {
-            color: #333;
-            margin-bottom: 10px;
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .wrapper {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .sidebar.collapsed {
+                width: 100%;
+            }
+
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .app-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div>
-                <h1>📊 Nwata Raw Activity Logs</h1>
-                <p>Real-time activity monitoring and session tracking</p>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">Nwata</div>
+                <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
             </div>
-            <div style="text-align: right;">
-                <button class="refresh-btn" onclick="location.reload()">🔄 Refresh Data</button>
-                <div class="last-updated">Last updated: {{ last_updated|date:"H:i:s" }}</div>
-            </div>
+
+            <ul class="sidebar-menu">
+                <li class="menu-item active" onclick="switchCanvas('overview')">
+                    <span class="menu-icon">📊</span>
+                    <span class="menu-label">Overview</span>
+                </li>
+                <li class="menu-item" onclick="switchCanvas('apps')">
+                    <span class="menu-icon">📱</span>
+                    <span class="menu-label">App Usage</span>
+                </li>
+                <li class="menu-item" onclick="switchCanvas('activity')">
+                    <span class="menu-icon">⏱️</span>
+                    <span class="menu-label">Activity Feed</span>
+                </li>
+                <li class="menu-item" onclick="switchCanvas('heatmap')">
+                    <span class="menu-icon">🔥</span>
+                    <span class="menu-label">Heatmap</span>
+                </li>
+                <li class="menu-item" onclick="switchCanvas('insights')">
+                    <span class="menu-icon">💡</span>
+                    <span class="menu-label">Insights</span>
+                </li>
+            </ul>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number">{{ total_activities }}</div>
-                <div class="stat-label">Total Logs</div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div>
+                    <h1>{% if org %}{{ org.name }}{% else %}Nwata{% endif %}</h1>
+                </div>
+                <div class="header-right">
+                    <div>Last updated: <strong>{{ last_updated|date:"H:i" }}</strong></div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number">{{ activity_count_today }}</div>
-                <div class="stat-label">Today's Activities</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">{{ total_time_today|floatformat:1 }}m</div>
-                <div class="stat-label">Time Tracked Today</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">{{ app_stats|length }}</div>
-                <div class="stat-label">Apps Used Today</div>
-            </div>
-        </div>
 
-        <div class="section">
-            <h2>🔴 Live Activity Feed</h2>
-            {% if recent_activities %}
-                <div class="activity-feed">
-                    {% for activity in recent_activities %}
+            <!-- Overview Canvas -->
+            <div id="overview" class="canvas-section active">
+                <!-- KPI Summary Cards -->
+                <div class="summary-cards">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Active Users Today</div>
+                        <div class="kpi-value">{{ active_users_today }}</div>
+                        <div class="kpi-subtext">out of {{ total_users }} users</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-label">Total Focus Hours</div>
+                        <div class="kpi-value">{{ total_focus_hours }}</div>
+                        <div class="kpi-subtext">tracked today</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-label">Average Focus %</div>
+                        <div class="kpi-value">{{ avg_focus_percent }}%</div>
+                        <div class="kpi-subtext">of 8-hour target</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-label">Weekly Streak</div>
+                        <div class="kpi-value">{{ weekly_streak }}</div>
+                        <div class="kpi-subtext">days with activity</div>
+                    </div>
+                </div>
+
+                <!-- Hourly Timeline -->
+                <div class="canvas-area">
+                    <div class="section-title">Today's Hourly Breakdown</div>
+                    <div class="hourly-timeline">
+                        {% for hour_stat in hourly_breakdown %}
+                        <div class="hour-block">
+                            <div class="hour-label">{{ hour_stat.hour }}:00</div>
+                            <div class="hour-count">{{ hour_stat.count }}</div>
+                            <div class="hour-duration">{{ hour_stat.duration }}m</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- App Usage Canvas -->
+            <div id="apps" class="canvas-section">
+                <div class="canvas-area">
+                    <div class="section-title">App Usage Statistics</div>
+                    <div class="app-grid">
+                        {% for app in app_stats %}
+                        <div class="app-card">
+                            <div class="app-card-content">
+                                <div class="app-name">{{ app.app_name }}</div>
+                                <div class="app-stats-row">
+                                    <span class="app-stat-label">Sessions:</span>
+                                    <span class="app-stat-value">{{ app.count }}</span>
+                                </div>
+                                <div class="app-stats-row">
+                                    <span class="app-stat-label">Total Time:</span>
+                                    <span class="app-stat-value">
+                                        {% if app.total_duration >= 60 %}
+                                            {{ app.total_duration|divisibleby:60|floatformat:0 }}h
+                                        {% else %}
+                                            {{ app.total_duration|floatformat:0 }}m
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="app-stats-row">
+                                    <span class="app-stat-label">Avg Duration:</span>
+                                    <span class="app-stat-value">{{ app.avg_duration }}m</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div style="grid-column: 1/-1; text-align: center; color: #999; padding: 40px;">
+                            No app usage data yet
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Feed Canvas -->
+            <div id="activity" class="canvas-section">
+                <div class="canvas-area">
+                    <div class="section-title">Recent Activity</div>
+                    <div class="activity-feed">
+                        {% for activity in recent_activities %}
                         <div class="activity-item">
                             <div class="activity-info">
                                 <div class="activity-app">{{ activity.app_name }}</div>
-                                <div class="activity-window">{{ activity.window_title|truncatechars:60 }}</div>
-                                <div class="activity-time">{{ activity.start_time|date:"M d, H:i:s" }} - {{ activity.end_time|date:"H:i:s" }}</div>
+                                <div class="activity-window">{{ activity.window_title|truncatewords:10 }}</div>
+                                <div class="activity-time">{{ activity.start_time|date:"H:i" }} - {{ activity.end_time|date:"H:i" }}</div>
                             </div>
                             <div class="activity-duration">{{ activity.duration_display }}m</div>
                         </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <h3>No Activity Yet</h3>
-                    <p>Start your Nwata agent to see activity logs appear here in real-time.</p>
-                </div>
-            {% endif %}
-        </div>
-
-        <div class="section">
-            <h2>🕐 Hourly Activity Timeline</h2>
-            {% if hourly_breakdown %}
-                <div class="hourly-timeline">
-                    {% for hour_data in hourly_breakdown %}
-                        <div class="hour-block">
-                            <div class="hour-label">{{ hour_data.hour }}:00</div>
-                            <div class="hour-count">{{ hour_data.count }}</div>
-                            <div class="hour-duration">{{ hour_data.duration }}m</div>
+                        {% empty %}
+                        <div style="text-align: center; color: #999; padding: 40px;">
+                            No activity yet
                         </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <h3>No Hourly Data</h3>
-                    <p>Activity data will appear here as your agent runs throughout the day.</p>
-                </div>
-            {% endif %}
-        </div>
-
-        <div class="section">
-            <h2>💻 Application Usage</h2>
-            {% if app_stats %}
-                <div class="app-grid">
-                    {% for app in app_stats %}
-                        <div class="app-card">
-                            <div class="app-name">{{ app.app_name }}</div>
-                            <div class="app-stats">
-                                <div class="app-stat">
-                                    <div class="app-stat-value">{{ app.count }}</div>
-                                    <div class="app-stat-label">Sessions</div>
-                                </div>
-                                <div class="app-stat">
-                                    <div class="app-stat-value">{{ app.total_duration }}m</div>
-                                    <div class="app-stat-label">Total Time</div>
-                                </div>
-                                <div class="app-stat">
-                                    <div class="app-stat-value">{{ app.avg_duration }}m</div>
-                                    <div class="app-stat-label">Avg Session</div>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <h3>No App Usage Data</h3>
-                    <p>Application usage statistics will appear here as you use different apps.</p>
-                </div>
-            {% endif %}
-        </div>
-
-        <div class="section">
-            <h2>🎯 Activity Sessions</h2>
-            {% if session_stats %}
-                {% for session in session_stats %}
-                    <div class="session-item">
-                        <div class="session-header">
-                            <div class="session-time">
-                                {{ session.start_time|date:"M d, H:i" }} - {{ session.end_time|date:"H:i" }}
-                            </div>
-                            <div class="session-duration">{{ session.duration }}m</div>
-                        </div>
-                        <div class="session-details">
-                            {{ session.activity_count }} activities • {{ session.app_count }} app{{ session.app_count|pluralize }} • {{ session.apps|join:", " }}
-                        </div>
+                        {% endfor %}
                     </div>
-                {% endfor %}
-            {% else %}
-                <div class="empty-state">
-                    <h3>No Session Data</h3>
-                    <p>Work sessions will be tracked and displayed here.</p>
                 </div>
-            {% endif %}
-        </div>
+            </div>
 
-        {% if category_stats %}
-        <div class="section">
-            <h2>📂 Activity Categories</h2>
-            <div class="category-grid">
-                {% for category in category_stats %}
-                    <div class="category-card">
-                        <div style="font-size: 2em; margin-bottom: 10px;">
-                            {% if category.category == "Raw Log" %}📝
-                            {% elif category.category == "Development" %}💻
-                            {% elif category.category == "Communication" %}💬
-                            {% else %}📋{% endif %}
-                        </div>
-                        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 5px;">
-                            {{ category.category|default:"Uncategorized" }}
-                        </div>
-                        <div>{{ category.count }} activities</div>
+            <!-- Heatmap Canvas -->
+            <div id="heatmap" class="canvas-section">
+                <div class="canvas-area">
+                    <div class="section-title">Weekly Activity Heatmap</div>
+                    <div class="heatmap">
+                        <table class="heatmap-table">
+                            <thead>
+                                <tr>
+                                    <th>App</th>
+                                    <th>Mon</th>
+                                    <th>Tue</th>
+                                    <th>Wed</th>
+                                    <th>Thu</th>
+                                    <th>Fri</th>
+                                    <th>Sat</th>
+                                    <th>Sun</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app in app_stats|slice:":5" %}
+                                <tr>
+                                    <td><strong>{{ app.app_name }}</strong></td>
+                                    <td><div class="heatmap-cell" style="background: #ffcccc;">0%</div></td>
+                                    <td><div class="heatmap-cell" style="background: #ff9999;">25%</div></td>
+                                    <td><div class="heatmap-cell" style="background: #ff6666;">50%</div></td>
+                                    <td><div class="heatmap-cell" style="background: #ff3333;">75%</div></td>
+                                    <td><div class="heatmap-cell" style="background: #cc0000;">100%</div></td>
+                                    <td><div class="heatmap-cell" style="background: #ffcccc;">20%</div></td>
+                                    <td><div class="heatmap-cell" style="background: #ff9999;">40%</div></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                {% endfor %}
+                </div>
+            </div>
+
+            <!-- Insights Canvas -->
+            <div id="insights" class="canvas-section">
+                <div class="canvas-area">
+                    <div class="section-title">Productivity Insights</div>
+                    <div style="padding: 40px; text-align: center; color: #999;">
+                        <p style="font-size: 1.2em; margin-bottom: 10px;">📈 Coming Soon</p>
+                        <p>Advanced insights, trends, and recommendations will appear here.</p>
+                    </div>
+                </div>
             </div>
         </div>
-        {% endif %}
     </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        function switchCanvas(canvasId) {
+            // Hide all sections
+            document.querySelectorAll('.canvas-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Show selected section
+            document.getElementById(canvasId).classList.add('active');
+
+            // Update menu active state
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.menu-item').classList.add('active');
+        }
+    </script>
 </body>
 </html>

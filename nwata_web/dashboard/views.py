@@ -8,6 +8,15 @@ from collections import defaultdict
 def dashboard(request):
     now = datetime.now()
     today = now.date()
+    week_start = today - timedelta(days=today.weekday())
+
+    # Get organization (default to first org if exists)
+    org = Organization.objects.first()
+
+    # Active users today (users with activity today)
+    active_users_today = User.objects.filter(
+        activitylog__created_at__date=today
+    ).distinct().count()
 
     # Get recent activity logs (last 24 hours) with duration calculation
     recent_activities = ActivityLog.objects.select_related('user', 'user__org').annotate(
@@ -132,7 +141,27 @@ def dashboard(request):
         )
     ).order_by('-count')
 
+    # MVP KPIs for Summary Cards
+    # Total focus hours (today)
+    total_focus_hours = round(total_time_today / 60, 1)  # Convert minutes to hours
+
+    # Average focus % (placeholder - targeting 8 hours/day)
+    target_hours = 8
+    avg_focus_percent = min(round((total_focus_hours / target_hours) * 100, 1), 100)
+
+    # Weekly streak (count of days with activity this week)
+    week_activity_days = ActivityLog.objects.filter(
+        created_at__date__gte=week_start,
+        created_at__date__lte=today
+    ).values('created_at__date').distinct().count()
+    weekly_streak = week_activity_days
+
     context = {
+        'org': org,
+        'active_users_today': active_users_today,
+        'total_focus_hours': total_focus_hours,
+        'avg_focus_percent': avg_focus_percent,
+        'weekly_streak': weekly_streak,
         'recent_activities': recent_activities[:20],  # Show last 20
         'total_time_today': round(total_time_today, 1),
         'activity_count_today': today_activities.count(),
