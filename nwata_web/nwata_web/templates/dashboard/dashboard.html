@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nwata Raw Logs Dashboard - Activity Monitoring</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 4px solid #007bff;
+        }
+        .stat-number {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #007bff;
+            margin: 10px 0;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section h2:before {
+            content: '';
+            width: 6px;
+            height: 24px;
+            background: #007bff;
+            border-radius: 3px;
+        }
+        .activity-feed {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+        }
+        .activity-item {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+        .activity-item:hover {
+            background-color: #f8f9fa;
+        }
+        .activity-info {
+            flex: 1;
+        }
+        .activity-app {
+            font-weight: 600;
+            color: #007bff;
+            font-size: 1.1em;
+        }
+        .activity-window {
+            color: #666;
+            font-size: 0.9em;
+            margin: 4px 0;
+        }
+        .activity-time {
+            color: #888;
+            font-size: 0.8em;
+        }
+        .activity-duration {
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        .hourly-timeline {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+        .hour-block {
+            min-width: 80px;
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .hour-label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9em;
+        }
+        .hour-count {
+            color: #007bff;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .hour-duration {
+            color: #28a745;
+            font-size: 0.8em;
+        }
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .app-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .app-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transform: translate(30px, -30px);
+        }
+        .app-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .app-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+        .app-stat {
+            text-align: center;
+        }
+        .app-stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .app-stat-label {
+            font-size: 0.8em;
+            opacity: 0.9;
+        }
+        .session-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #28a745;
+        }
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .session-time {
+            font-weight: 600;
+            color: #333;
+        }
+        .session-duration {
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+        }
+        .session-details {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .category-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .refresh-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .refresh-btn:hover {
+            background: #0056b3;
+        }
+        .last-updated {
+            color: #666;
+            font-size: 0.8em;
+        }
+        .empty-state {
+            text-align: center;
+            color: #666;
+            padding: 60px 20px;
+        }
+        .empty-state h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📊 Nwata Raw Activity Logs</h1>
+                <p>Real-time activity monitoring and session tracking</p>
+            </div>
+            <div style="text-align: right;">
+                <button class="refresh-btn" onclick="location.reload()">🔄 Refresh Data</button>
+                <div class="last-updated">Last updated: {{ last_updated|date:"H:i:s" }}</div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_activities }}</div>
+                <div class="stat-label">Total Logs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ activity_count_today }}</div>
+                <div class="stat-label">Today's Activities</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_time_today|floatformat:1 }}m</div>
+                <div class="stat-label">Time Tracked Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ app_stats|length }}</div>
+                <div class="stat-label">Apps Used Today</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔴 Live Activity Feed</h2>
+            {% if recent_activities %}
+                <div class="activity-feed">
+                    {% for activity in recent_activities %}
+                        <div class="activity-item">
+                            <div class="activity-info">
+                                <div class="activity-app">{{ activity.app_name }}</div>
+                                <div class="activity-window">{{ activity.window_title|truncatechars:60 }}</div>
+                                <div class="activity-time">{{ activity.start_time|date:"M d, H:i:s" }} - {{ activity.end_time|date:"H:i:s" }}</div>
+                            </div>
+                            <div class="activity-duration">{{ activity.duration_display }}m</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>No Activity Yet</h3>
+                    <p>Start your Nwata agent to see activity logs appear here in real-time.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>🕐 Hourly Activity Timeline</h2>
+            {% if hourly_breakdown %}
+                <div class="hourly-timeline">
+                    {% for hour_data in hourly_breakdown %}
+                        <div class="hour-block">
+                            <div class="hour-label">{{ hour_data.hour }}:00</div>
+                            <div class="hour-count">{{ hour_data.count }}</div>
+                            <div class="hour-duration">{{ hour_data.duration }}m</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>No Hourly Data</h3>
+                    <p>Activity data will appear here as your agent runs throughout the day.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>💻 Application Usage</h2>
+            {% if app_stats %}
+                <div class="app-grid">
+                    {% for app in app_stats %}
+                        <div class="app-card">
+                            <div class="app-name">{{ app.app_name }}</div>
+                            <div class="app-stats">
+                                <div class="app-stat">
+                                    <div class="app-stat-value">{{ app.count }}</div>
+                                    <div class="app-stat-label">Sessions</div>
+                                </div>
+                                <div class="app-stat">
+                                    <div class="app-stat-value">{{ app.total_duration }}m</div>
+                                    <div class="app-stat-label">Total Time</div>
+                                </div>
+                                <div class="app-stat">
+                                    <div class="app-stat-value">{{ app.avg_duration }}m</div>
+                                    <div class="app-stat-label">Avg Session</div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>No App Usage Data</h3>
+                    <p>Application usage statistics will appear here as you use different apps.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>🎯 Activity Sessions</h2>
+            {% if session_stats %}
+                {% for session in session_stats %}
+                    <div class="session-item">
+                        <div class="session-header">
+                            <div class="session-time">
+                                {{ session.start_time|date:"M d, H:i" }} - {{ session.end_time|date:"H:i" }}
+                            </div>
+                            <div class="session-duration">{{ session.duration }}m</div>
+                        </div>
+                        <div class="session-details">
+                            {{ session.activity_count }} activities • {{ session.app_count }} app{{ session.app_count|pluralize }} • {{ session.apps|join:", " }}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <h3>No Session Data</h3>
+                    <p>Work sessions will be tracked and displayed here.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if category_stats %}
+        <div class="section">
+            <h2>📂 Activity Categories</h2>
+            <div class="category-grid">
+                {% for category in category_stats %}
+                    <div class="category-card">
+                        <div style="font-size: 2em; margin-bottom: 10px;">
+                            {% if category.category == "Raw Log" %}📝
+                            {% elif category.category == "Development" %}💻
+                            {% elif category.category == "Communication" %}💬
+                            {% else %}📋{% endif %}
+                        </div>
+                        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 5px;">
+                            {{ category.category|default:"Uncategorized" }}
+                        </div>
+                        <div>{{ category.count }} activities</div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
