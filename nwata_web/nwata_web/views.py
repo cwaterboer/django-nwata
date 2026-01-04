@@ -1,7 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from dashboard.forms import SignUpForm, LoginForm
+from api.models import User, Device
 
 
 def home(request):
@@ -18,8 +20,10 @@ def signup_view(request):
         form = SignUpForm(request.POST)
         if form.is_valid():
             user = form.save()
-            messages.success(request, 'Account created successfully! Please log in.')
-            return redirect('login')
+            # Auto-login the user after signup
+            login(request, user)
+            messages.success(request, 'Welcome to Nwata! Let\'s get you started.')
+            return redirect('onboarding')
     else:
         form = SignUpForm()
     
@@ -53,3 +57,40 @@ def logout_view(request):
     logout(request)
     messages.info(request, 'You have been logged out.')
     return redirect('home')
+
+
+@login_required
+def onboarding_view(request):
+    # Check if user has any devices registered
+    try:
+        nwata_user = User.objects.get(email=request.user.email)
+        has_devices = Device.objects.filter(user=nwata_user).exists()
+    except User.DoesNotExist:
+        has_devices = False
+    
+    context = {
+        'user': request.user,
+        'has_devices': has_devices,
+    }
+    return render(request, 'onboarding.html', context)
+
+
+@login_required
+def device_setup_view(request):
+    # Get user's organization info
+    try:
+        nwata_user = User.objects.select_related('org').get(email=request.user.email)
+        org = nwata_user.org
+    except User.DoesNotExist:
+        org = None
+    
+    # Get user's devices
+    devices = Device.objects.filter(user__email=request.user.email).order_by('-last_seen')
+    
+    context = {
+        'user': request.user,
+        'org': org,
+        'devices': devices,
+        'api_url': request.build_absolute_uri('/').rstrip('/'),
+    }
+    return render(request, 'device_setup.html', context)
