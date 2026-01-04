@@ -1,3 +1,36 @@
 from django.contrib import admin
+from .models import Organization, User, ActivityLog, Gamification
 
-# Register your models here.
+
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    list_display = ['name', 'subdomain', 'created_at']
+    search_fields = ['name', 'subdomain']
+    list_filter = ['created_at']
+
+
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ['email', 'org', 'created_at']
+    search_fields = ['email']
+    list_filter = ['org', 'created_at']
+    raw_id_fields = ['org']
+
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    list_display = ['app_name', 'user', 'start_time', 'end_time', 'category', 'created_at']
+    search_fields = ['app_name', 'window_title', 'user__email']
+    list_filter = ['category', 'app_name', 'created_at']
+    raw_id_fields = ['user']
+    date_hierarchy = 'created_at'
+    readonly_fields = ['created_at']
+
+
+@admin.register(Gamification)
+class GamificationAdmin(admin.ModelAdmin):
+    list_display = ['user', 'date', 'points', 'streak']
+    search_fields = ['user__email']
+    list_filter = ['date']
+    raw_id_fields = ['user']
+    date_hierarchy = 'date'

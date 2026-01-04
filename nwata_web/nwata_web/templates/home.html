@@ -5,21 +5,148 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nwata - Productivity Tracking</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
-        h1 { color: #333; }
-        p { font-size: 18px; color: #666; }
-        a { margin: 0 10px; text-decoration: none; color: #007bff; }
-        a:hover { text-decoration: underline; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .home-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #667eea;
+            font-size: 3.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .tagline {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .description {
+            color: #888;
+            font-size: 1em;
+            margin-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1em;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #f8f9ff;
+            transform: translateY(-2px);
+        }
+
+        .features {
+            margin-top: 50px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .feature {
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 12px;
+        }
+
+        .feature h3 {
+            color: #667eea;
+            font-size: 1em;
+            margin-bottom: 8px;
+        }
+
+        .feature p {
+            color: #666;
+            font-size: 0.85em;
+        }
     </style>
 </head>
 <body>
-    <h1>Welcome to Nwata</h1>
-    <p>Track your app usage, time spent, and gamify your productivity with real-time insights.</p>
-    <p>Integrate with our agent to monitor activities and boost your focus.</p>
-    <div>
-        <a href="/admin/">Admin Panel</a> |
-        <a href="/dashboard/">Dashboard</a> |
-        <a href="/api/">API Docs</a>
+    <div class="home-container">
+        <div class="logo">
+            <h1>Nwata</h1>
+        </div>
+
+        <p class="tagline">Track your productivity, amplify your focus</p>
+        <p class="description">Monitor app usage, time spent, and gamify your daily activities with real-time insights and analytics.</p>
+
+        <div class="cta-buttons">
+            <a href="{% url 'signup' %}" class="btn btn-primary">Get Started</a>
+            <a href="{% url 'login' %}" class="btn btn-secondary">Log In</a>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <h3>📊 Real-time Tracking</h3>
+                <p>Monitor app usage as it happens</p>
+            </div>
+            <div class="feature">
+                <h3>🎮 Gamification</h3>
+                <p>Points, streaks & achievements</p>
+            </div>
+            <div class="feature">
+                <h3>📈 Analytics</h3>
+                <p>Detailed insights & reports</p>
+            </div>
+        </div>
     </div>
 </body>
 </html>

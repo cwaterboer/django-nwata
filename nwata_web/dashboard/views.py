@@ -1,10 +1,12 @@
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, Avg, F, ExpressionWrapper, DurationField
 from django.db.models.functions import TruncHour, ExtractHour
 from api.models import ActivityLog, Gamification, User, Organization
 from datetime import datetime, timedelta
 from collections import defaultdict
 
+@login_required
 def dashboard(request):
     now = datetime.now()
     today = now.date()
@@ -15,7 +17,7 @@ def dashboard(request):
 
     # Active users today (users with activity today)
     active_users_today = User.objects.filter(
-        activitylog__created_at__date=today
+        activity_logs__created_at__date=today
     ).distinct().count()
 
     # Get recent activity logs (last 24 hours) with duration calculation
@@ -125,9 +127,9 @@ def dashboard(request):
 
     # User stats
     user_stats = User.objects.annotate(
-        activity_count=Count('activitylog'),
-        total_points=Sum('gamification__points'),
-        avg_streak=Avg('gamification__streak')
+        activity_count=Count('activity_logs'),
+        total_points=Sum('gamification_records__points'),
+        avg_streak=Avg('gamification_records__streak')
     ).select_related('org')
 
     # Activity categories (if any)
