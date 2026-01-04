@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import Organization, User, ActivityLog, Gamification
+from .models import Organization, User, ActivityLog, Gamification, Device
 from datetime import datetime, timedelta
 
 
@@ -48,6 +48,15 @@ class ActivityIngestAPITest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.url = '/api/activity/'
+        self.org = Organization.objects.create(name="Test Org", subdomain="test")
+        self.user = User.objects.create(email="test@example.com", org=self.org)
+        self.device = Device.objects.create(
+            user=self.user,
+            name="Test Agent",
+            token="test-token",
+            token_expires_at=timezone.now() + timedelta(days=1)
+        )
+        self.auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.device.token}"}
 
     def test_single_log_ingest(self):
         start = timezone.now()
@@ -60,7 +69,7 @@ class ActivityIngestAPITest(TestCase):
             "end_time": end.isoformat()
         }
         
-        response = self.client.post(self.url, data, format='json')
+        response = self.client.post(self.url, data, format='json', **self.auth_headers)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['status'], 'success')
@@ -84,7 +93,7 @@ class ActivityIngestAPITest(TestCase):
             }
         ]
         
-        response = self.client.post(self.url, data, format='json')
+        response = self.client.post(self.url, data, format='json', **self.auth_headers)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['processed'], 2)
@@ -93,7 +102,7 @@ class ActivityIngestAPITest(TestCase):
     def test_missing_required_fields(self):
         data = {"app_name": "Chrome"}  # Missing start_time and end_time
         
-        response = self.client.post(self.url, data, format='json')
+        response = self.client.post(self.url, data, format='json', **self.auth_headers)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('error', response.data)
@@ -108,7 +117,7 @@ class ActivityIngestAPITest(TestCase):
             "end_time": end.isoformat()
         }
         
-        response = self.client.post(self.url, data, format='json')
+        response = self.client.post(self.url, data, format='json', **self.auth_headers)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 

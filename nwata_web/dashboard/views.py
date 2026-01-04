@@ -1,10 +1,14 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.db.models import Count, Sum, Avg, F, ExpressionWrapper, DurationField
 from django.db.models.functions import TruncHour, ExtractHour
 from api.models import ActivityLog, Gamification, User, Organization
 from datetime import datetime, timedelta
 from collections import defaultdict
+from .profile_forms import ProfileUpdateForm
 
 @login_required
 def dashboard(request):
@@ -12,16 +16,25 @@ def dashboard(request):
     today = now.date()
     week_start = today - timedelta(days=today.weekday())
 
-    # Get organization (default to first org if exists)
-    org = Organization.objects.first()
+    # Get current user's organization
+    try:
+        nwata_user = User.objects.get(email=request.user.email)
+        org = nwata_user.org
+    except User.DoesNotExist:
+        # If user doesn't have a Nwata User record, they can't see any data
+        org = None
 
-    # Active users today (users with activity today)
+    # Filter all queries by organization
+    org_filter = {'user__org': org} if org else {'user__org__isnull': True}
+
+    # Active users today (users with activity today in this org)
     active_users_today = User.objects.filter(
+        org=org,
         activity_logs__created_at__date=today
-    ).distinct().count()
+    ).distinct().count() if org else 0
 
-    # Get recent activity logs (last 24 hours) with duration calculation
-    recent_activities = ActivityLog.objects.select_related('user', 'user__org').annotate(
+    # Get recent activity logs (last 24 hours) with duration calculation - ONLY for this org
+    recent_activities = ActivityLog.objects.filter(**org_filter).select_related('user', 'user__org').annotate(
         duration_minutes=ExpressionWrapper(
             F('end_time') - F('start_time'),
             output_field=DurationField()
@@ -32,9 +45,10 @@ def dashboard(request):
     for activity in recent_activities:
         activity.duration_display = round(activity.duration_minutes.total_seconds() / 60, 1)
 
-    # Today's activities with proper duration calculation
+    # Today's activities with proper duration calculation - filtered by org
     today_activities = ActivityLog.objects.filter(
-        created_at__date=today
+        created_at__date=today,
+        **org_filter
     ).annotate(
         duration_minutes=ExpressionWrapper(
             F('end_time') - F('start_time'),
@@ -61,12 +75,13 @@ def dashboard(request):
         for hour in sorted(hourly_stats.keys())
     ]
 
-    # App usage stats with proper duration calculation
+    # App usage stats with proper duration calculation - filtered by org
     app_stats = []
-    for app_name in ActivityLog.objects.values_list('app_name', flat=True).distinct():
+    for app_name in ActivityLog.objects.filter(**org_filter).values_list('app_name', flat=True).distinct():
         app_activities = ActivityLog.objects.filter(
             app_name=app_name,
-            created_at__date=today
+            created_at__date=today,
+            **org_filter
         ).annotate(
             duration_minutes=ExpressionWrapper(
                 F('end_time') - F('start_time'),
@@ -90,7 +105,8 @@ def dashboard(request):
     session_threshold = timedelta(minutes=5)
 
     sorted_activities = ActivityLog.objects.filter(
-        created_at__date=today
+        created_at__date=today,
+        **org_filter
     ).order_by('start_time')
 
     for activity in sorted_activities:
@@ -125,15 +141,15 @@ def dashboard(request):
             'apps': list(set(a.app_name for a in session))[:3]  # Top 3 apps
         })
 
-    # User stats
-    user_stats = User.objects.annotate(
+    # User stats - filtered by org
+    user_stats = User.objects.filter(org=org).annotate(
         activity_count=Count('activity_logs'),
         total_points=Sum('gamification_records__points'),
         avg_streak=Avg('gamification_records__streak')
-    ).select_related('org')
+    ).select_related('org') if org else []
 
-    # Activity categories (if any)
-    category_stats = ActivityLog.objects.values('category').annotate(
+    # Activity categories (if any) - filtered by org
+    category_stats = ActivityLog.objects.filter(**org_filter).values('category').annotate(
         count=Count('id'),
         total_duration=Sum(
             ExpressionWrapper(
@@ -151,15 +167,17 @@ def dashboard(request):
     target_hours = 8
     avg_focus_percent = min(round((total_focus_hours / target_hours) * 100, 1), 100)
 
-    # Weekly streak (count of days with activity this week)
+    # Weekly streak (count of days with activity this week) - filtered by org
     week_activity_days = ActivityLog.objects.filter(
         created_at__date__gte=week_start,
-        created_at__date__lte=today
+        created_at__date__lte=today,
+        **org_filter
     ).values('created_at__date').distinct().count()
     weekly_streak = week_activity_days
 
     context = {
         'org': org,
+        'current_user': request.user,
         'active_users_today': active_users_today,
         'total_focus_hours': total_focus_hours,
         'avg_focus_percent': avg_focus_percent,
@@ -172,9 +190,54 @@ def dashboard(request):
         'session_stats': session_stats,
         'category_stats': category_stats,
         'user_stats': user_stats,
-        'total_users': User.objects.count(),
-        'total_activities': ActivityLog.objects.count(),
+        'total_users': User.objects.filter(org=org).count() if org else 0,
+        'total_activities': ActivityLog.objects.filter(**org_filter).count(),
         'last_updated': now,
     }
 
     return render(request, 'dashboard/dashboard.html', context)
+
+
+@login_required
+def profile_view(request):
+    if request.method == 'POST':
+        form = ProfileUpdateForm(request.POST, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('profile')
+    else:
+        form = ProfileUpdateForm(user=request.user)
+    
+    # Get organization info
+    try:
+        nwata_user = User.objects.get(email=request.user.email)
+        org = nwata_user.org
+    except User.DoesNotExist:
+        org = None
+    
+    context = {
+        'form': form,
+        'org': org,
+        'current_user': request.user,
+    }
+    return render(request, 'dashboard/profile.html', context)
+
+
+@login_required
+def change_password_view(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Keep user logged in
+            messages.success(request, 'Password changed successfully!')
+            return redirect('profile')
+    else:
+        form = PasswordChangeForm(request.user)
+    
+    context = {
+        'form': form,
+        'current_user': request.user,
+    }
+    return render(request, 'dashboard/change_password.html', context)

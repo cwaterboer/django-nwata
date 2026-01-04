@@ -67,3 +67,38 @@ class Gamification(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.date} (Points: {self.points}, Streak: {self.streak})"
+
+
+class Device(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='devices')
+    name = models.CharField(max_length=255, default='Agent')
+    token = models.CharField(max_length=512, unique=True)
+    token_expires_at = models.DateTimeField()
+    last_seen = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['token']),
+            models.Index(fields=['user', 'last_seen']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.user.email})"
+
+
+class DeviceEvent(models.Model):
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='events')
+    event = models.CharField(max_length=50)
+    payload = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['device', 'event']),
+            models.Index(fields=['created_at']),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.device} - {self.event} @ {self.created_at}"
