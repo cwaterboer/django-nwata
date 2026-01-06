@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Setup - Nwata</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .setup-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .back-link {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .setup-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.4em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #ff6600;
+        }
+
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .step-title {
+            font-size: 1.2em;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .step-content {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .code-block {
+            background: #2c3e50;
+            color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            position: relative;
+            margin: 15px 0;
+        }
+
+        .code-block pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .copy-btn.copied {
+            background: #28a745;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .info-box strong {
+            color: #0066cc;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .warning-box strong {
+            color: #856404;
+        }
+
+        .devices-list {
+            margin-top: 20px;
+        }
+
+        .device-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .device-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .device-status {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .status-online {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1em;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-block;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .download-section {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .download-section h2 {
+            margin-bottom: 15px;
+        }
+
+        .credentials {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .credential-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .credential-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .credential-value {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: #2c3e50;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <a href="{% url 'onboarding' %}" class="back-link">← Back to Onboarding</a>
+
+        <div class="setup-card">
+            <h1>🔧 Device Setup</h1>
+            <p class="subtitle">Follow these steps to connect your computer and start tracking your productivity.</p>
+
+            <!-- Download Section -->
+            <div class="download-section">
+                <h2>📥 Step 1: Download the Agent</h2>
+                <p style="margin-bottom: 20px;">Download the Nwata tracking agent for your operating system</p>
+                <a href="https://github.com/cwaterboer/django-nwata/raw/main/nwata_min.py" class="btn btn-primary" download>
+                    Download nwata_min.py
+                </a>
+            </div>
+
+            <!-- Your Credentials -->
+            <div class="section">
+                <h2 class="section-title">🔑 Your Credentials</h2>
+                <div class="credentials">
+                    <div class="credential-item">
+                        <div class="credential-label">Email</div>
+                        <div class="credential-value">{{ user.email }}</div>
+                    </div>
+                    <div class="credential-item">
+                        <div class="credential-label">Organization</div>
+                        <div class="credential-value">{{ org.name }}</div>
+                    </div>
+                    <div class="credential-item">
+                        <div class="credential-label">API Endpoint</div>
+                        <div class="credential-value">{{ api_url }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Setup Instructions -->
+            <div class="section">
+                <h2 class="section-title">📋 Setup Instructions</h2>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">1</span>
+                        Install Python Dependencies
+                    </div>
+                    <div class="step-content">
+                        <p>Ensure you have Python 3.8+ installed, then install required packages:</p>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this, 'pip-install')">Copy</button>
+                            <pre id="pip-install">pip install requests pyobjc-framework-Cocoa  # macOS
+# OR
+pip install requests pywin32  # Windows</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">2</span>
+                        Configure API Endpoint
+                    </div>
+                    <div class="step-content">
+                        <p>Open <code>nwata_min.py</code> and update the API URL on line 15:</p>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this, 'api-url')">Copy</button>
+                            <pre id="api-url">DJANGO_API_URL = "{{ api_url }}"</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">3</span>
+                        Run the Agent
+                    </div>
+                    <div class="step-content">
+                        <p>Start the agent and authenticate with your credentials:</p>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this, 'run-agent')">Copy</button>
+                            <pre id="run-agent">python3 nwata_min.py</pre>
+                        </div>
+                        <div class="info-box">
+                            <strong>First Time Setup:</strong><br>
+                            When you run the agent for the first time, it will prompt you for:
+                            <ul style="margin-top: 10px; margin-left: 20px;">
+                                <li><strong>Email:</strong> {{ user.email }}</li>
+                                <li><strong>Password:</strong> Your account password</li>
+                                <li><strong>Device name:</strong> Any name (e.g., "macbook-pro", "work-laptop")</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">4</span>
+                        Verify Connection
+                    </div>
+                    <div class="step-content">
+                        <p>Once authenticated, the agent will start tracking your activity. You should see:</p>
+                        <div class="code-block">
+                            <pre>[AUTH] Device registered and token saved.
+[SIGNAL] START sent, status 201
+[AGENT] Started
+[LOG] {'window_title': 'VS Code', 'app_name': 'VS Code', ...}
+[SYNC] Uploaded 1 logs</pre>
+                        </div>
+                        <p style="margin-top: 10px;">Head over to your <a href="{% url 'dashboard' %}" style="color: #667eea; font-weight: 600;">Dashboard</a> to see your activity!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connected Devices -->
+            {% if devices %}
+            <div class="section">
+                <h2 class="section-title">💻 Your Connected Devices</h2>
+                <div class="devices-list">
+                    {% for device in devices %}
+                    <div class="device-item">
+                        <div>
+                            <div class="device-name">{{ device.name }}</div>
+                            <div class="device-status">
+                                Last seen: {{ device.last_seen|timesince }} ago
+                                {% if device.token_expires_at > now %}
+                                    <span class="status-online">● Active</span>
+                                {% else %}
+                                    <span style="color: #dc3545;">● Expired</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="warning-box">
+                <strong>⚠️ No devices connected yet</strong><br>
+                Follow the steps above to connect your first device and start tracking.
+            </div>
+            {% endif %}
+
+            <!-- Quick Actions -->
+            <div style="text-align: center; margin-top: 40px;">
+                <a href="{% url 'dashboard' %}" class="btn btn-primary">Go to Dashboard →</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyCode(btn, elementId) {
+            const codeElement = document.getElementById(elementId);
+            const text = codeElement.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
