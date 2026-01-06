@@ -5,6 +5,8 @@ from api.models import User, Organization
 
 
 class ProfileUpdateForm(forms.Form):
+    first_name = forms.CharField(max_length=150, required=False)
+    last_name = forms.CharField(max_length=150, required=False)
     username = forms.CharField(max_length=150, required=True)
     email = forms.EmailField(required=True)
     organization_name = forms.CharField(max_length=255, required=True)
@@ -14,6 +16,8 @@ class ProfileUpdateForm(forms.Form):
         super().__init__(*args, **kwargs)
         
         if self.user:
+            self.fields['first_name'].initial = self.user.first_name
+            self.fields['last_name'].initial = self.user.last_name
             self.fields['username'].initial = self.user.username
             self.fields['email'].initial = self.user.email
             
@@ -45,6 +49,8 @@ class ProfileUpdateForm(forms.Form):
             return None
             
         # Update Django auth user
+        self.user.first_name = self.cleaned_data['first_name']
+        self.user.last_name = self.cleaned_data['last_name']
         self.user.username = self.cleaned_data['username']
         self.user.email = self.cleaned_data['email']
         self.user.save()

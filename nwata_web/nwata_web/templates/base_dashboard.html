@@ -223,25 +223,6 @@
                     <span class="menu-icon">📊</span>
                     <span class="menu-label">Dashboard</span>
                 </li>
-                <li class="menu-item" onclick="window.location.href='{% url 'dashboard' %}'">
-                    <span class="menu-icon">💡</span>
-                    <span class="menu-label">Insights</span>
-                </li>
-
-                <li class="menu-section">Analytics</li>
-                <li class="menu-item" onclick="window.location.href='{% url 'dashboard' %}'">
-                    <span class="menu-icon">📱</span>
-                    <span class="menu-label">App Usage</span>
-                </li>
-                <li class="menu-item" onclick="window.location.href='{% url 'dashboard' %}'">
-                    <span class="menu-icon">⏱️</span>
-                    <span class="menu-label">Activity Feed</span>
-                </li>
-                <li class="menu-item" onclick="window.location.href='{% url 'dashboard' %}'">
-                    <span class="menu-icon">🔥</span>
-                    <span class="menu-label">Heatmap</span>
-                </li>
-
                 <li class="menu-section">Account</li>
                 <li class="menu-item {% if request.resolver_match.url_name == 'device_setup' %}active{% endif %}" onclick="window.location.href='{% url 'device_setup' %}'">
                     <span class="menu-icon">🖥️</span>
@@ -269,7 +250,13 @@
                     <div class="user-profile">
                         <span class="user-icon">👤</span>
                         <div class="user-info">
-                            <div class="user-name">{{ user.username }}</div>
+                            <div class="user-name">
+                                {% if user.first_name or user.last_name %}
+                                    {{ user.first_name }} {{ user.last_name }}
+                                {% else %}
+                                    {{ user.username }}
+                                {% endif %}
+                            </div>
                             <div class="user-email">{{ user.email }}</div>
                         </div>
                     </div>

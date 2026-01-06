@@ -167,6 +167,14 @@ button, .btn {
     <!-- Current Info Card -->
     <div class="info-card">
         <div class="info-row">
+            <span class="info-label">First Name:</span>
+            <span class="info-value">{{ user.first_name|default:"Not set" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Last Name:</span>
+            <span class="info-value">{{ user.last_name|default:"Not set" }}</span>
+        </div>
+        <div class="info-row">
             <span class="info-label">Username:</span>
             <span class="info-value">{{ user.username }}</span>
         </div>
@@ -192,6 +200,30 @@ button, .btn {
         <form method="post">
             {% csrf_token %}
             
+            <div class="form-group">
+                <label for="id_first_name">First Name</label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.first_name.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_last_name">Last Name</label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.last_name.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
             <div class="form-group">
                 <label for="id_username">Username</label>
                 {{ form.username }}

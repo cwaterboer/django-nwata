@@ -5,12 +5,14 @@ from api.models import User, Organization
 
 
 class SignUpForm(UserCreationForm):
+    first_name = forms.CharField(max_length=150, required=False, help_text='Optional.')
+    last_name = forms.CharField(max_length=150, required=False, help_text='Optional.')
     email = forms.EmailField(required=True, help_text='Required. Enter a valid email address.')
     organization_name = forms.CharField(max_length=255, required=True, help_text='Your organization name.')
     
     class Meta:
         model = AuthUser
-        fields = ('username', 'email', 'password1', 'password2')
+        fields = ('first_name', 'last_name', 'username', 'email', 'password1', 'password2')
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -21,6 +23,8 @@ class SignUpForm(UserCreationForm):
     def save(self, commit=True):
         # Create Django auth user
         auth_user = super().save(commit=False)
+        auth_user.first_name = self.cleaned_data.get('first_name', '')
+        auth_user.last_name = self.cleaned_data.get('last_name', '')
         auth_user.email = self.cleaned_data['email']
         
         if commit:
