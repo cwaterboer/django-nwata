@@ -2,11 +2,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
+from django.http import FileResponse
 from django.contrib.auth import authenticate, get_user_model
+from django.conf import settings
 from django.utils import timezone
 from datetime import datetime, timedelta
 import secrets
 import logging
+import os
 from .models import ActivityLog, Gamification, User, Organization, Device, DeviceEvent
 
 logger = logging.getLogger(__name__)
@@ -267,3 +270,43 @@ class ActivityIngest(DeviceAuthMixin, APIView):
             f"({activity.duration:.1f}s)"
         )
         return activity
+
+
+class DownloadAgent(APIView):
+    """
+    API endpoint for downloading the Nwata tracking agent.
+    Serves a single zip containing all platform binaries.
+    The agent detects its own OS at runtime.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        filename = 'nwata-agent.zip'
+        
+        # Build path to agent zip file
+        agent_dir = os.path.join(settings.BASE_DIR, '..', 'nwata-agent')
+        agent_path = os.path.join(agent_dir, filename)
+
+        # Verify file exists
+        if not os.path.exists(agent_path):
+            logger.warning(f"Agent zip not found: {agent_path}")
+            return Response(
+                {"error": "Agent package not available"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            response = FileResponse(
+                open(agent_path, 'rb'),
+                content_type='application/zip',
+                as_attachment=True,
+                filename=filename
+            )
+            logger.info(f"Agent download: {filename} served to {request.META.get('REMOTE_ADDR')}")
+            return response
+        except Exception as e:
+            logger.error(f"Error serving agent download: {str(e)}")
+            return Response(
+                {"error": "Failed to download agent"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

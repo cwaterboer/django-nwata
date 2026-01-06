@@ -89,6 +89,17 @@
     color: #0066cc;
 }
 
+.info-box ol {
+    margin-left: 20px;
+    line-height: 1.8;
+}
+
+.info-box h4 {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
 .warning-box {
     background: #fff3cd;
     border-left: 4px solid #ffc107;
@@ -202,6 +213,18 @@
     padding-bottom: 10px;
     border-bottom: 3px solid #ff6600;
 }
+
+.macos-warning {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.macos-warning strong {
+    color: #856404;
+}
 </style>
 {% endblock %}
 
@@ -213,9 +236,15 @@
     <div class="download-section">
         <h2>📥 Step 1: Download the Agent</h2>
         <p style="margin-bottom: 20px;">Download the Nwata tracking agent for your operating system</p>
-        <a href="https://github.com/cwaterboer/django-nwata/raw/main/nwata_min.py" class="btn btn-primary" download>
-            Download nwata_min.py
+        <a href="{% url 'agent-download' %}" class="btn btn-primary" download>
+            📥 Download NwataAgent
         </a>
+        <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.9;">Your agent will be automatically detected for your OS (Windows/macOS/Linux)</p>
+    </div>
+
+    <!-- macOS Security Notice -->
+    <div class="macos-warning">
+        <strong>🍎 macOS Users:</strong> If you get a "cannot be opened because the developer cannot be verified" error, see <strong>Step 1b</strong> below.
     </div>
 
     <!-- Your Credentials -->
@@ -241,9 +270,40 @@
     <div class="section">
         <h2 class="section-title">📋 Setup Instructions</h2>
 
+        <!-- macOS Security Step -->
         <div class="step">
             <div class="step-title">
-                <span class="step-number">1</span>
+                <span class="step-number">1b</span>
+                <span style="color: #d9534f;">🍎 macOS Only: Handle Security Restrictions</span>
+            </div>
+            <div class="step-content">
+                <p>When you download the NwataAgent zip, macOS marks it as "from the internet." Follow one of these methods:</p>
+                
+                <h4><strong>Method 1: Right-Click & Open (Easiest)</strong></h4>
+                <ol>
+                    <li>Extract the <code>nwata-agent.zip</code> file</li>
+                    <li>Right-click on <code>NwataAgent.app</code> and select <strong>Open</strong></li>
+                    <li>Click <strong>Open</strong> in the security dialog</li>
+                    <li>The app will launch and create a tray icon</li>
+                </ol>
+
+                <h4><strong>Method 2: Terminal Command (Advanced)</strong></h4>
+                <p>After extracting, run this in Terminal to remove the quarantine restriction:</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this, 'macos-quarantine')">Copy</button>
+                    <pre id="macos-quarantine">xattr -dr com.apple.quarantine /Applications/NwataAgent.app</pre>
+                </div>
+                <p style="margin-top: 10px; font-size: 0.9em;">Then double-click the app to launch it. If you still see a warning, go to <strong>System Settings → Privacy & Security</strong> and click <strong>Open Anyway</strong> for NwataAgent, then try again.</p>
+
+                <div class="info-box">
+                    <strong>ℹ️ Why this happens:</strong> macOS Gatekeeper prevents unsigned apps from unknown developers. This is a normal security feature. You're safe—the agent is open-source and you can verify the code on <a href="https://github.com/cwaterboer/django-nwata" target="_blank" style="color: #0066cc; text-decoration: underline;">GitHub</a>.
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-title">
+                <span class="step-number">2</span>
                 Install Python Dependencies
             </div>
             <div class="step-content">
@@ -259,7 +319,7 @@ pip install requests pywin32  # Windows</pre>
 
         <div class="step">
             <div class="step-title">
-                <span class="step-number">2</span>
+                <span class="step-number">3</span>
                 Configure API Endpoint
             </div>
             <div class="step-content">
@@ -273,7 +333,7 @@ pip install requests pywin32  # Windows</pre>
 
         <div class="step">
             <div class="step-title">
-                <span class="step-number">3</span>
+                <span class="step-number">4</span>
                 Run the Agent
             </div>
             <div class="step-content">
@@ -296,7 +356,7 @@ pip install requests pywin32  # Windows</pre>
 
         <div class="step">
             <div class="step-title">
-                <span class="step-number">4</span>
+                <span class="step-number">5</span>
                 Verify Connection
             </div>
             <div class="step-content">

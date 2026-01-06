@@ -247,7 +247,10 @@
                 {% if has_devices %}
                     <span class="status-badge completed">✓ Device Connected</span>
                 {% else %}
-                    <a href="{% url 'device_setup' %}" class="btn btn-primary">Setup Device</a>
+                    <div style="margin: 15px 0;">
+                        <a href="{% url 'agent-download' %}" class="btn btn-primary" download>📥 Download Agent</a>
+                    </div>
+                    <a href="{% url 'device_setup' %}" class="btn btn-secondary">Next Steps</a>
                     <span class="status-badge pending">⏳ Pending</span>
                 {% endif %}
             </div>
