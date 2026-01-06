@@ -139,6 +139,12 @@ class DeviceLifecycle(DeviceAuthMixin, APIView):
         except PermissionError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_401_UNAUTHORIZED)
 
+        # Validate request.data is a dict, not a list
+        if not isinstance(request.data, dict):
+            return Response({
+                "error": "Invalid request format. Expected object with 'event', 'payload', and optional 'timestamp' fields."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         event = request.data.get('event')
         payload = request.data.get('payload', {})
         timestamp = request.data.get('timestamp')

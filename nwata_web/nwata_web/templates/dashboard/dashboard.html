@@ -141,40 +141,6 @@
     font-size: 0.85em;
 }
 
-/* Heatmap */
-.heatmap-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.heatmap-day {
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
-    text-align: center;
-    border: 2px solid #e0e0e0;
-}
-
-.heatmap-day.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-color: #667eea;
-}
-
-.day-name {
-    font-weight: 600;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    font-size: 0.9em;
-}
-
-.day-hours {
-    font-size: 1.8em;
-    font-weight: bold;
-}
-
 /* Hourly Timeline */
 .hourly-timeline {
     display: grid;
@@ -290,7 +256,6 @@
     <button class="tab-btn active" onclick="switchCanvas('overview')">Overview</button>
     <button class="tab-btn" onclick="switchCanvas('apps')">App Usage</button>
     <button class="tab-btn" onclick="switchCanvas('activity')">Activity Feed</button>
-    <button class="tab-btn" onclick="switchCanvas('heatmap')">Heatmap</button>
     <button class="tab-btn" onclick="switchCanvas('insights')">Insights</button>
 </div>
 
@@ -341,16 +306,16 @@
 <!-- App Usage Canvas -->
 <div id="apps" class="canvas-section">
     <div class="canvas-area">
-        <div class="section-title">Application Usage</div>
+        <div class="section-title">Application Usage Today</div>
         <div class="app-grid">
-            {% for app in top_apps %}
+            {% for app in app_stats %}
             <div class="app-card">
-                <div class="app-name">{{ app.name }}</div>
+                <div class="app-name">{{ app.app_name }}</div>
                 <div class="app-stats">{{ app.count }} activities</div>
-                <div class="app-time">{{ app.total_time }}h</div>
+                <div class="app-time">{{ app.total_duration }}m</div>
             </div>
             {% empty %}
-            <p style="color: #666;">No application data available yet.</p>
+            <p style="color: #666;">No application data available yet. Start tracking to see insights!</p>
             {% endfor %}
         </div>
     </div>
@@ -365,27 +330,12 @@
             <div class="activity-item">
                 <div class="activity-details">
                     <div class="activity-app">{{ activity.app_name }}</div>
-                    <div class="activity-window">{{ activity.window_title }}</div>
+                    <div class="activity-window">{{ activity.window_title|truncatechars:60 }}</div>
                 </div>
-                <div class="activity-time">{{ activity.timestamp|timesince }} ago</div>
+                <div class="activity-time">{{ activity.created_at|timesince }} ago</div>
             </div>
             {% empty %}
-            <p style="color: #666; padding: 20px;">No recent activity to display.</p>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-
-<!-- Heatmap Canvas -->
-<div id="heatmap" class="canvas-section">
-    <div class="canvas-area">
-        <div class="section-title">Weekly Activity Heatmap</div>
-        <div class="heatmap-grid">
-            {% for day in weekly_heatmap %}
-            <div class="heatmap-day {% if day.hours > 0 %}active{% endif %}">
-                <div class="day-name">{{ day.name }}</div>
-                <div class="day-hours">{{ day.hours }}h</div>
-            </div>
+            <p style="color: #666; padding: 20px;">No recent activity to display. Start tracking to see your activity feed!</p>
             {% endfor %}
         </div>
     </div>
@@ -396,41 +346,61 @@
     <div class="canvas-area">
         <div class="section-title">Productivity Insights</div>
         
-        <div class="insight-card">
-            <div class="insight-title">🚀 Peak Productivity Hours</div>
-            <div class="insight-text">
-                Your most productive hours are between 
-                <span class="insight-metric">{{ peak_start }}:00 - {{ peak_end }}:00</span>
-                with an average of <span class="insight-metric">{{ peak_activities }} activities</span> per hour.
+        {% if weekly_streak >= 5 %}
+            <div class="insight-card">
+                <div class="insight-title">⚡ Weekly Streak</div>
+                <div class="insight-text">
+                    You've logged activity for 
+                    <span class="insight-metric">{{ weekly_streak }} days</span>
+                    this week. Excellent consistency!
+                </div>
             </div>
-        </div>
 
-        <div class="insight-card">
-            <div class="insight-title">📱 Top Application</div>
-            <div class="insight-text">
-                You spend most of your time in 
-                <span class="insight-metric">{{ top_app_name }}</span>
-                with <span class="insight-metric">{{ top_app_hours }}h</span> logged this week.
+            {% if app_stats %}
+            <div class="insight-card">
+                <div class="insight-title">📱 Top Application Today</div>
+                <div class="insight-text">
+                    You spent most of your time in 
+                    <span class="insight-metric">{{ app_stats.0.app_name }}</span>
+                    with <span class="insight-metric">{{ app_stats.0.total_duration }} minutes</span> logged across {{ app_stats.0.count }} activities.
+                </div>
             </div>
-        </div>
+            {% endif %}
 
-        <div class="insight-card">
-            <div class="insight-title">⚡ Focus Streak</div>
-            <div class="insight-text">
-                You've maintained a 
-                <span class="insight-metric">{{ focus_streak }} day streak</span>
-                of consistent activity tracking. Keep it up!
+            <div class="insight-card">
+                <div class="insight-title">📊 Today's Summary</div>
+                <div class="insight-text">
+                    Today: <span class="insight-metric">{{ total_focus_hours }}h total</span> across 
+                    <span class="insight-metric">{{ activity_count_today }} activities</span>.
+                    {% if app_stats|length > 0 %}
+                        You used <span class="insight-metric">{{ app_stats|length }} different apps</span>.
+                    {% endif %}
+                </div>
             </div>
-        </div>
 
-        <div class="insight-card">
-            <div class="insight-title">📊 Weekly Summary</div>
-            <div class="insight-text">
-                This week: <span class="insight-metric">{{ weekly_total_hours }}h total</span> across 
-                <span class="insight-metric">{{ weekly_app_count }} different apps</span>.
-                Average daily focus: <span class="insight-metric">{{ daily_avg }}h</span>
+            {% if hourly_breakdown %}
+            <div class="insight-card">
+                <div class="insight-title">🚀 Peak Activity</div>
+                <div class="insight-text">
+                    Most activity logged around 
+                    <span class="insight-metric">{{ hourly_breakdown.0.hour }}:00</span>
+                    with <span class="insight-metric">{{ hourly_breakdown.0.count }} activities</span>.
+                </div>
             </div>
-        </div>
+            {% endif %}
+        {% else %}
+            <div class="insight-card" style="border-left-color: #ffc107;">
+                <div class="insight-title">📊 Insights Coming Soon</div>
+                <div class="insight-text">
+                    Keep tracking! Insights will be available after you've logged activity for at least 5 days.
+                    <br><br>
+                    Current progress: <span class="insight-metric">{{ weekly_streak }} day{% if weekly_streak != 1 %}s{% endif %}</span> this week.
+                    {% if weekly_streak > 0 %}
+                        Just <span class="insight-metric">{{ 5|add:"-"|add:weekly_streak }} more day{% if 5|add:"-"|add:weekly_streak != 1 %}s{% endif %}</span> to go!
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
