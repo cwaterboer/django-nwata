@@ -1,0 +1,1 @@
+Update macOS instructions: use recursive xattr, add Open Anyway guidance, and fix minor typo.

@@ -1,17 +1,40 @@
 from django.db import models
+from django.contrib.auth.models import User as AuthUser
+from django.utils import timezone
+import hashlib
+import secrets
 
 class Organization(models.Model):
+    ORG_TYPE_CHOICES = [
+        ('personal', 'Personal'),
+        ('team', 'Team'),
+    ]
+    
     name = models.CharField(max_length=255)
     subdomain = models.CharField(max_length=100, unique=True)
+    organization_type = models.CharField(max_length=20, choices=ORG_TYPE_CHOICES, default='personal')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         indexes = [
             models.Index(fields=['subdomain']),
+            models.Index(fields=['organization_type']),
         ]
 
     def __str__(self):
         return self.name
+    
+    def is_personal(self):
+        return self.organization_type == 'personal'
+    
+    def is_team(self):
+        return self.organization_type == 'team'
+    
+    @staticmethod
+    def generate_personal_subdomain(email):
+        """Generate stable, non-predictable subdomain for personal org from email"""
+        hash_digest = hashlib.sha256(email.lower().encode()).hexdigest()[:12]
+        return f"personal-{hash_digest}"
 
 class User(models.Model):
     email = models.EmailField(unique=True)
@@ -99,6 +122,390 @@ class DeviceEvent(models.Model):
             models.Index(fields=['created_at']),
         ]
         ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.device.name} - {self.event} ({self.created_at})"
+
+
+# ========================================
+# RBAC & PERMISSIONS MODELS
+# ========================================
+
+class Role(models.Model):
+    """Defines role types within organizations"""
+    ROLE_CHOICES = [
+        ('owner', 'Owner'),
+        ('admin', 'Admin'),
+        ('member', 'Member'),
+        ('viewer', 'Viewer'),
+    ]
+    
+    name = models.CharField(max_length=50, choices=ROLE_CHOICES, unique=True)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.get_name_display()
+
+
+class Permission(models.Model):
+    """Fine-grained permissions for resources and actions"""
+    PERMISSION_CHOICES = [
+        # User Management
+        ('invite_users', 'Invite Users'),
+        ('remove_users', 'Remove Users'),
+        ('manage_roles', 'Manage Roles'),
+        
+        # Data Access
+        ('view_own_activity', 'View Own Activity'),
+        ('view_team_activity', 'View Team Activity'),
+        ('export_own_data', 'Export Own Data'),
+        ('export_team_data', 'Export Team Data'),
+        
+        # Organization Management
+        ('manage_org_settings', 'Manage Organization Settings'),
+        ('manage_billing', 'Manage Billing'),
+        ('manage_modules', 'Manage Modules'),
+        
+        # Department Management
+        ('create_departments', 'Create Departments'),
+        ('manage_departments', 'Manage Departments'),
+        
+        # Advanced
+        ('view_audit_logs', 'View Audit Logs'),
+        ('manage_api_keys', 'Manage API Keys'),
+    ]
+    
+    name = models.CharField(max_length=50, choices=PERMISSION_CHOICES, unique=True)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.get_name_display()
+
+
+class RolePermission(models.Model):
+    """Maps roles to their permissions"""
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='role_permissions')
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE)
+    
+    class Meta:
+        unique_together = [['role', 'permission']]
+    
+    def __str__(self):
+        return f"{self.role.name} - {self.permission.name}"
+
+
+class UserOrgRole(models.Model):
+    """Junction table managing user roles within organizations with invitation state"""
+    STATE_CHOICES = [
+        ('pending', 'Pending'),
+        ('invited', 'Invited'),
+        ('active', 'Active'),
+        ('suspended', 'Suspended'),
+        ('inactive', 'Inactive'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='org_roles')
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='user_roles')
+    role = models.ForeignKey(Role, on_delete=models.PROTECT)
+    state = models.CharField(max_length=20, choices=STATE_CHOICES, default='pending')
+    
+    # Invitation tracking
+    invitation_token = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    invitation_expires_at = models.DateTimeField(null=True, blank=True)
+    invited_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='invitations_sent')
+    invited_at = models.DateTimeField(null=True, blank=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = [['user', 'organization']]
+        indexes = [
+            models.Index(fields=['organization', 'state']),
+            models.Index(fields=['invitation_token']),
+            models.Index(fields=['state']),
+        ]
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.organization.name} ({self.role.name})"
+    
+    def generate_invitation_token(self):
+        """Generate secure invitation token"""
+        self.invitation_token = secrets.token_urlsafe(32)
+        self.invitation_expires_at = timezone.now() + timezone.timedelta(days=7)
+        self.state = 'invited'
+        self.invited_at = timezone.now()
+        
+    def is_invitation_valid(self):
+        """Check if invitation token is still valid"""
+        if not self.invitation_token or not self.invitation_expires_at:
+            return False
+        return timezone.now() < self.invitation_expires_at
+    
+    def accept_invitation(self):
+        """Mark invitation as accepted"""
+        self.state = 'active'
+        self.accepted_at = timezone.now()
+        self.invitation_token = None  # Clear token after use
+        self.save()
+
+
+# ========================================
+# DEPARTMENT & HIERARCHY MODELS
+# ========================================
+
+class Department(models.Model):
+    """Hierarchical department structure within organizations"""
+    name = models.CharField(max_length=255)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='departments')
+    parent_department = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='sub_departments')
+    description = models.TextField(blank=True)
+    
+    # Manager of this department
+    manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_departments')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = [['organization', 'name']]
+        indexes = [
+            models.Index(fields=['organization', 'parent_department']),
+        ]
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.organization.name})"
+    
+    def get_depth(self):
+        """Calculate department depth in hierarchy"""
+        depth = 0
+        current = self
+        while current.parent_department and depth < 10:  # Max depth 10 to prevent infinite loops
+            current = current.parent_department
+            depth += 1
+        return depth
+    
+    def get_ancestors(self):
+        """Get all parent departments up the tree"""
+        ancestors = []
+        current = self.parent_department
+        while current:
+            ancestors.append(current)
+            current = current.parent_department
+        return ancestors
+    
+    def get_descendants(self):
+        """Get all child departments down the tree"""
+        descendants = []
+        for child in self.sub_departments.all():
+            descendants.append(child)
+            descendants.extend(child.get_descendants())
+        return descendants
+
+
+class UserDepartment(models.Model):
+    """Maps users to departments with role in department"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='department_memberships')
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='members')
+    role_in_department = models.CharField(max_length=100, blank=True)  # e.g., "Lead", "Senior", "Junior"
+    
+    joined_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = [['user', 'department']]
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.department.name}"
+
+
+# ========================================
+# ORGANIZATION STATE MACHINE
+# ========================================
+
+class OrganizationState(models.Model):
+    """Tracks organization lifecycle state"""
+    STATE_CHOICES = [
+        ('created', 'Created'),
+        ('active', 'Active'),
+        ('suspended', 'Suspended'),
+        ('archived', 'Archived'),
+    ]
+    
+    organization = models.OneToOneField(Organization, on_delete=models.CASCADE, related_name='state')
+    current_state = models.CharField(max_length=20, choices=STATE_CHOICES, default='created')
+    
+    # Transition tracking
+    previous_state = models.CharField(max_length=20, choices=STATE_CHOICES, null=True, blank=True)
+    state_changed_at = models.DateTimeField(null=True, blank=True)
+    state_changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Suspension/archive reasons
+    reason = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['current_state']),
+        ]
+    
+    def __str__(self):
+        return f"{self.organization.name} - {self.current_state}"
+    
+    def can_transition_to(self, new_state):
+        """Validate state transitions"""
+        valid_transitions = {
+            'created': ['active', 'archived'],
+            'active': ['suspended', 'archived'],
+            'suspended': ['active', 'archived'],
+            'archived': [],  # No transitions from archived
+        }
+        return new_state in valid_transitions.get(self.current_state, [])
+    
+    def transition_to(self, new_state, user=None, reason=''):
+        """Perform state transition with validation"""
+        if not self.can_transition_to(new_state):
+            raise ValueError(f"Cannot transition from {self.current_state} to {new_state}")
+        
+        self.previous_state = self.current_state
+        self.current_state = new_state
+        self.state_changed_at = timezone.now()
+        self.state_changed_by = user
+        self.reason = reason
+        self.save()
+
+
+# ========================================
+# AUDIT LOGGING
+# ========================================
+
+class AuditLog(models.Model):
+    """Comprehensive audit trail for all system actions"""
+    ACTION_CHOICES = [
+        # User actions
+        ('user.created', 'User Created'),
+        ('user.invited', 'User Invited'),
+        ('user.accepted_invitation', 'User Accepted Invitation'),
+        ('user.role_changed', 'User Role Changed'),
+        ('user.suspended', 'User Suspended'),
+        ('user.removed', 'User Removed'),
+        
+        # Organization actions
+        ('org.created', 'Organization Created'),
+        ('org.state_changed', 'Organization State Changed'),
+        ('org.settings_changed', 'Organization Settings Changed'),
+        
+        # Permission actions
+        ('permission.granted', 'Permission Granted'),
+        ('permission.revoked', 'Permission Revoked'),
+        
+        # Department actions
+        ('dept.created', 'Department Created'),
+        ('dept.updated', 'Department Updated'),
+        ('dept.deleted', 'Department Deleted'),
+        
+        # Data actions
+        ('data.exported', 'Data Exported'),
+        ('data.deleted', 'Data Deleted'),
+    ]
+    
+    # Who did it
+    actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_actions')
+    actor_email = models.EmailField()  # Store email in case user is deleted
+    
+    # What happened
+    action = models.CharField(max_length=50, choices=ACTION_CHOICES, db_index=True)
+    resource_type = models.CharField(max_length=50)  # 'user', 'organization', 'department', etc.
+    resource_id = models.IntegerField(null=True, blank=True)
+    
+    # Context
+    organization = models.ForeignKey(Organization, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
+    
+    # Changes
+    changes_before = models.JSONField(null=True, blank=True)
+    changes_after = models.JSONField(null=True, blank=True)
+    
+    # Metadata
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['organization', 'created_at']),
+            models.Index(fields=['actor', 'created_at']),
+            models.Index(fields=['action', 'created_at']),
+            models.Index(fields=['resource_type', 'resource_id']),
+        ]
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.actor_email} - {self.action} ({self.created_at})"
+
+
+# ========================================
+# API KEY MANAGEMENT
+# ========================================
+
+class APIKey(models.Model):
+    """API keys for programmatic access with scoped permissions"""
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='api_keys')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    name = models.CharField(max_length=255)
+    key_prefix = models.CharField(max_length=8)  # First 8 chars for display
+    key_hash = models.CharField(max_length=128, unique=True)  # SHA256 hash of full key
+    
+    # Scopes
+    scopes = models.JSONField(default=list)  # e.g., ['read_activity', 'write_activity']
+    
+    # Status
+    is_active = models.BooleanField(default=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['organization', 'is_active']),
+            models.Index(fields=['key_hash']),
+        ]
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.name} ({self.key_prefix}...)"
+    
+    @staticmethod
+    def generate_key():
+        """Generate a new API key"""
+        return f"nwata_{secrets.token_urlsafe(32)}"
+    
+    def verify_key(self, key):
+        """Verify a key against the stored hash"""
+        key_hash = hashlib.sha256(key.encode()).hexdigest()
+        return key_hash == self.key_hash
+    
+    def is_valid(self):
+        """Check if key is active and not expired"""
+        if not self.is_active:
+            return False
+        if self.expires_at and timezone.now() > self.expires_at:
+            return False
+        return True
 
     def __str__(self):
         return f"{self.device} - {self.event} @ {self.created_at}"

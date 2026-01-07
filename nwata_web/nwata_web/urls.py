@@ -18,14 +18,16 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from .views import (
-    home, signup_view, login_view, logout_view, 
-    onboarding_view, device_setup_view,
+    home, signup_choice_view, personal_signup_view, team_signup_view, 
+    login_view, logout_view, onboarding_view, device_setup_view,
     about_view, solutions_view, use_cases_view
 )
 
 urlpatterns = [
     path("", home, name='home'),
-    path('signup/', signup_view, name='signup'),
+    path('signup/', signup_choice_view, name='signup'),
+    path('signup/personal/', personal_signup_view, name='signup_personal'),
+    path('signup/team/', team_signup_view, name='signup_team'),
     path('login/', login_view, name='login'),
     path('logout/', logout_view, name='logout'),
     path('onboarding/', onboarding_view, name='onboarding'),

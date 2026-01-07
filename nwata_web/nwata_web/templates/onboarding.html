@@ -237,9 +237,26 @@
                 <span class="status-badge completed">✓ Completed</span>
             </div>
 
-            <!-- Step 2: Setup Device -->
+            <!-- Step 2: Setup Organization (for team orgs) -->
+            {% if is_team_org %}
+            <div class="step-card {% if org_setup_completed %}completed{% endif %}">
+                <div class="step-number">{% if not org_setup_completed %}2{% endif %}</div>
+                <h3 class="step-title">Setup Team</h3>
+                <p class="step-description">
+                    Configure your team, invite members, and set up departments and roles.
+                </p>
+                {% if org_setup_completed %}
+                    <span class="status-badge completed">✓ Team Ready</span>
+                {% else %}
+                    <a href="{% url 'org_settings' %}?tab=general" class="btn btn-primary">Setup Team →</a>
+                    <span class="status-badge pending">⏳ Pending</span>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Step 3: Setup Device -->
             <div class="step-card {% if has_devices %}completed{% endif %}">
-                <div class="step-number">{% if not has_devices %}2{% endif %}</div>
+                <div class="step-number">{% if not has_devices %}{% if is_team_org %}3{% else %}2{% endif %}{% endif %}</div>
                 <h3 class="step-title">Setup Your Device</h3>
                 <p class="step-description">
                     Download and authenticate the tracking agent on your computer to start logging activity.
@@ -255,9 +272,9 @@
                 {% endif %}
             </div>
 
-            <!-- Step 3: View Dashboard -->
+            <!-- Step 4: View Dashboard -->
             <div class="step-card {% if has_devices %}{% else %}{% endif %}">
-                <div class="step-number">3</div>
+                <div class="step-number">{% if is_team_org %}4{% else %}3{% endif %}</div>
                 <h3 class="step-title">Explore Dashboard</h3>
                 <p class="step-description">
                     View your activity analytics, productivity insights, and gamification stats.

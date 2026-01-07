@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Started - Nwata</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .logo h1 {
+            background: linear-gradient(to right, #fb923c, #f97316, #ea580c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .logo p {
+            color: #d1d5db;
+            font-size: 1em;
+        }
+
+        .heading {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .heading h2 {
+            color: #ffffff;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .heading p {
+            color: #9ca3af;
+            font-size: 1.1em;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (min-width: 768px) {
+            .options-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .option-card {
+            background: linear-gradient(to bottom right, #1f2937, #111827);
+            border: 2px solid #374151;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .option-card:hover {
+            border-color: #fb923c;
+            box-shadow: 0 0 30px rgba(251, 146, 60, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .option-icon {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+        }
+
+        .option-title {
+            color: #ffffff;
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .option-description {
+            color: #9ca3af;
+            font-size: 0.95em;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            flex-grow: 1;
+        }
+
+        .features-list {
+            text-align: left;
+            margin: 25px 0;
+            color: #d1d5db;
+            font-size: 0.9em;
+        }
+
+        .features-list li {
+            list-style: none;
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .features-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #f97316;
+            font-weight: bold;
+        }
+
+        .option-cta {
+            background: linear-gradient(to right, #f97316, #ea580c);
+            color: white;
+            padding: 14px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .option-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(251, 146, 60, 0.4);
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 40px;
+            color: #9ca3af;
+        }
+
+        .login-link a {
+            color: #fb923c;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>⚡ Nwata</h1>
+            <p>Your work, your data, your career</p>
+        </div>
+
+        <div class="heading">
+            <h2>Get Started</h2>
+            <p>Choose the right workspace for your needs</p>
+        </div>
+
+        <div class="options-grid">
+            <!-- Personal Workspace -->
+            <a href="{% url 'signup_personal' %}" class="option-card">
+                <div class="option-icon">👤</div>
+                <div class="option-title">Personal Workspace</div>
+                <div class="option-description">
+                    Perfect for individuals tracking their own work and building a verified career history.
+                </div>
+                <ul class="features-list">
+                    <li>Personal work wallet</li>
+                    <li>Activity tracking</li>
+                    <li>Career history export</li>
+                    <li>Forever free</li>
+                </ul>
+                <button class="option-cta">Start Personal</button>
+            </a>
+
+            <!-- Team Workspace -->
+            <a href="{% url 'signup_team' %}" class="option-card">
+                <div class="option-icon">👥</div>
+                <div class="option-title">Team Workspace</div>
+                <div class="option-description">
+                    Great for teams, companies, and organizations managing productivity and compliance.
+                </div>
+                <ul class="features-list">
+                    <li>Invite team members</li>
+                    <li>Team insights & analytics</li>
+                    <li>Compliance ready</li>
+                    <li>Modular features</li>
+                </ul>
+                <button class="option-cta">Start Team</button>
+            </a>
+        </div>
+
+        <div class="login-link">
+            Already have an account? <a href="{% url 'login' %}">Log in</a>
+        </div>
+    </div>
+</body>
+</html>

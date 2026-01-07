@@ -1,0 +1,4 @@
+Context for replacing macOS quarantine command in HTML templates.
+Old: <pre id="macos-quarantine">xattr -d com.apple.quarantine ~/Downloads/nwata-agent/NwataAgent.app</pre>
+New: <pre id="macos-quarantine">xattr -dr com.apple.quarantine /Applications/NwataAgent.app</pre>
+Also add after the paragraph: If you still see a warning, go to System Settings → Privacy & Security → "Open Anyway" for NwataAgent, then try again.

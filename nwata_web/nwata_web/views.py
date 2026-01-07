@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from dashboard.forms import SignUpForm, LoginForm
+from dashboard.forms import PersonalSignUpForm, TeamSignUpForm, LoginForm
 from api.models import User, Device
 
 
@@ -12,22 +12,49 @@ def home(request):
     return render(request, 'home.html')
 
 
-def signup_view(request):
+def signup_choice_view(request):
+    """Let user choose between personal and team signup"""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, 'signup_choice.html')
+
+
+def personal_signup_view(request):
+    """Signup for personal/individual workspace"""
     if request.user.is_authenticated:
         return redirect('dashboard')
     
     if request.method == 'POST':
-        form = SignUpForm(request.POST)
+        form = PersonalSignUpForm(request.POST)
         if form.is_valid():
             user = form.save()
             # Auto-login the user after signup
             login(request, user)
-            messages.success(request, 'Welcome to Nwata! Let\'s get you started.')
+            messages.success(request, 'Welcome to Nwata! Your personal workspace is ready.')
             return redirect('onboarding')
     else:
-        form = SignUpForm()
+        form = PersonalSignUpForm()
     
-    return render(request, 'signup.html', {'form': form})
+    return render(request, 'signup_personal.html', {'form': form})
+
+
+def team_signup_view(request):
+    """Signup for team organization"""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        form = TeamSignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Auto-login the user after signup
+            login(request, user)
+            messages.success(request, 'Welcome to Nwata! Your team workspace is created. Invite your team members next.')
+            return redirect('onboarding')
+    else:
+        form = TeamSignUpForm()
+    
+    return render(request, 'signup_team.html', {'form': form})
 
 
 def login_view(request):
@@ -76,12 +103,19 @@ def onboarding_view(request):
     try:
         nwata_user = User.objects.get(email=request.user.email)
         has_devices = Device.objects.filter(user=nwata_user).exists()
+        org = nwata_user.org
+        is_team_org = org.is_team() if org else False
     except User.DoesNotExist:
         has_devices = False
+        org = None
+        is_team_org = False
     
     context = {
         'user': request.user,
         'has_devices': has_devices,
+        'org': org,
+        'is_team_org': is_team_org,
+        'org_setup_completed': is_team_org,  # Show as completed for now (can be more sophisticated later)
     }
     return render(request, 'onboarding.html', context)
 

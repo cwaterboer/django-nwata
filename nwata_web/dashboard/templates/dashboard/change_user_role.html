@@ -1,0 +1,64 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Change User Role{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white mb-2">Change User Role</h1>
+        <p class="text-gray-400">Update the role for {{ user_org_role.user.email }}</p>
+    </div>
+
+    <div class="bg-gray-900 rounded-lg border border-gray-700 p-6">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label for="id_email" class="block text-sm font-medium text-gray-300 mb-2">User Email</label>
+                <input type="text" id="id_email" readonly value="{{ user_org_role.user.email }}" 
+                       class="w-full bg-gray-800 text-gray-500 border border-gray-700 rounded px-3 py-2 cursor-not-allowed">
+            </div>
+            
+            <div>
+                <label for="id_current_role" class="block text-sm font-medium text-gray-300 mb-2">Current Role</label>
+                <input type="text" id="id_current_role" readonly value="{{ user_org_role.role.name|upper }}" 
+                       class="w-full bg-gray-800 text-gray-500 border border-gray-700 rounded px-3 py-2 cursor-not-allowed">
+            </div>
+            
+            <div>
+                <label for="id_role" class="block text-sm font-medium text-gray-300 mb-2">New Role</label>
+                {{ form.role }}
+                {% if form.role.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.role.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="flex gap-4">
+                <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded">
+                    Update Role
+                </button>
+                <a href="{% url 'manage_users' %}" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    select {
+        width: 100%;
+        background-color: #1f2937;
+        color: white;
+        border: 1px solid #374151;
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    select:focus {
+        outline: none;
+        border-color: #ea580c;
+        transition: border-color 0.2s;
+    }
+</style>
+{% endblock %}

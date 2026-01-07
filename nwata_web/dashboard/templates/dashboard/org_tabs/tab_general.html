@@ -1,0 +1,61 @@
+<!-- General Settings Tab -->
+{% if active_tab == 'general' %}
+<div class="tab-content">
+    <!-- Organization Info Card -->
+    <div class="settings-card">
+        <div class="settings-card-title">📋 Organization Information</div>
+        <div class="settings-card-subtitle">Update your organization profile</div>
+        
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="general-settings" value="1">
+            
+            <div class="form-group">
+                <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <p style="color: #dc2626; font-size: 0.85em; margin-top: 5px;">{{ form.name.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.subdomain.id_for_label }}" class="form-label">{{ form.subdomain.label }}</label>
+                {{ form.subdomain }}
+                <p style="color: #666; font-size: 0.85em; margin-top: 5px;">This URL cannot be changed</p>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Organization Type</label>
+                    <div class="form-input" style="background: #f8f9fa; padding: 10px 12px;">
+                        {{ org.get_organization_type_display }}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Created</label>
+                    <div class="form-input" style="background: #f8f9fa; padding: 10px 12px;">
+                        {{ org.created_at|date:"M d, Y" }}
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                <button type="submit" class="btn btn-primary">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="danger-zone">
+        <div class="danger-zone-title">⚠️ Danger Zone</div>
+        <div class="danger-zone-text">
+            Destructive actions cannot be undone. Please proceed with caution.
+        </div>
+        <button class="btn btn-danger" style="opacity: 0.5; cursor: not-allowed;" disabled>
+            Archive Organization (Coming Soon)
+        </button>
+    </div>
+</div>
+{% endif %}

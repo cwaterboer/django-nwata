@@ -1,0 +1,32 @@
+<!-- Insert this between the download section and the "Install Python Dependencies" step -->
+
+<!-- macOS Security & Extraction -->
+<div class="step">
+    <div class="step-title">
+        <span class="step-number">1b</span>
+        <span style="color: #d9534f;">🍎 macOS Only: Handle Security Restrictions</span>
+    </div>
+    <div class="step-content">
+        <p>When you download the NwataAgent zip, macOS marks it as "from the internet." Follow one of these methods:</p>
+        
+        <h4 style="margin-top: 15px; margin-bottom: 10px; color: #2c3e50;"><strong>Method 1: Right-Click & Open (Easiest)</strong></h4>
+        <ol style="margin-left: 20px; line-height: 1.8;">
+            <li>Extract the <code>nwata-agent.zip</code> file</li>
+            <li>Right-click on <code>NwataAgent.app</code> and select <strong>Open</strong></li>
+            <li>Click <strong>Open</strong> in the security dialog</li>
+            <li>The app will launch and create a tray icon</li>
+        </ol>
+
+        <h4 style="margin-top: 15px; margin-bottom: 10px; color: #2c3e50;"><strong>Method 2: Terminal Command (Advanced)</strong></h4>
+        <p>After extracting, run this in Terminal to remove the quarantine restriction:</p>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this, 'macos-quarantine')">Copy</button>
+            <pre id="macos-quarantine">xattr -dr com.apple.quarantine /Applications/NwataAgent.app</pre>
+        </div>
+        <p style="margin-top: 10px; font-size: 0.9em;">Then double-click the app to launch it. If you still see a warning, go to <strong>System Settings → Privacy & Security</strong> and click <strong>Open Anyway</strong> for NwataAgent, then try again.</p>
+
+        <div class="info-box">
+            <strong>ℹ️ Why this happens:</strong> macOS Gatekeeper prevents unsigned apps from unknown developers. This is a normal security feature. You're safe—the agent is open-source and you can verify the code.
+        </div>
+    </div>
+</div>

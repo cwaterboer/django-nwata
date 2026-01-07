@@ -1,0 +1,103 @@
+<!-- Departments Tab -->
+{% if active_tab == 'departments' %}
+<div class="tab-content">
+    {% if not is_team %}
+    <!-- Info Box for Personal Orgs -->
+    <div class="info-box">
+        ℹ️ <strong>Note:</strong> Departments are only available for team organizations. Upgrade to a team plan to use departments.
+    </div>
+    {% else %}
+
+    <!-- Department Stats -->
+    <div class="grid-2" style="margin-bottom: 30px;">
+        <div class="stat-card" style="border-top-color: #667eea;">
+            <div class="stat-label">Total Departments</div>
+            <div class="stat-value">{{ departments.count }}</div>
+        </div>
+        <div class="stat-card" style="border-top-color: #667eea;">
+            <div class="stat-label">Top-Level</div>
+            <div class="stat-value">{{ departments|dictsort:"parent_department"|length }}</div>
+        </div>
+        <div class="stat-card" style="border-top-color: #667eea;">
+            <div class="stat-label">Members</div>
+            <div class="stat-value">0</div>
+        </div>
+    </div>
+
+    <!-- Create Department Card -->
+    <div class="settings-card">
+        <div class="settings-card-title">➕ Create Department</div>
+        <div class="settings-card-subtitle">Add a new department to organize your team</div>
+        
+        <button onclick="openCreateDepartmentModal()" class="btn btn-primary" style="margin-bottom: 20px;">
+            + Create Department
+        </button>
+    </div>
+
+    <!-- Departments List Card -->
+    {% if departments %}
+    <div class="settings-card">
+        <div class="settings-card-title">📁 Departments</div>
+        <div class="settings-card-subtitle">Manage your organization's department structure</div>
+        
+        <div style="display: grid; gap: 15px;">
+            {% for dept in departments %}
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h4 style="margin: 0 0 8px 0; color: #2c3e50; font-weight: 600;">
+                        {% if dept.parent_department %}
+                            <span style="color: #999; margin-right: 5px;">↳</span>
+                        {% endif %}
+                        {{ dept.name }}
+                    </h4>
+                    {% if dept.parent_department %}
+                    <p style="margin: 0 0 5px 0; color: #666; font-size: 0.9em;">Parent: <span style="color: #2c3e50; font-weight: 500;">{{ dept.parent_department.name }}</span></p>
+                    {% endif %}
+                    <p style="margin: 0; color: #999; font-size: 0.85em;">{{ dept.userdepartment_set.count }} member{{ dept.userdepartment_set.count|pluralize }}</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" onclick="editDepartment({{ dept.id }})" style="background: none; border: none; color: #ff6600; cursor: pointer; font-weight: 600; text-decoration: none; font-size: 0.9em;">Edit</button>
+                    <button type="button" onclick="deleteDepartment({{ dept.id }})" style="background: none; border: none; color: #dc2626; cursor: pointer; font-weight: 600; text-decoration: none; font-size: 0.9em;">Delete</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="settings-card" style="text-align: center; padding: 50px 25px;">
+        <p style="color: #666; margin-bottom: 20px; font-size: 1.05em;">No departments created yet. Create your first department to get started.</p>
+        <button onclick="openCreateDepartmentModal()" class="btn btn-primary">
+            Create First Department
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- Create/Edit Department Modal -->
+    <div id="departmentModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50;">
+        <div style="background: white; border-radius: 12px; padding: 30px; max-width: 500px; width: 100%; margin: 20px;">
+            <h3 style="font-size: 1.5em; color: #2c3e50; font-weight: bold; margin-bottom: 15px;">Create Department</h3>
+            <p style="color: #666; margin-bottom: 20px;">Department creation form coming soon. Use the manage departments interface below.</p>
+            <button onclick="closeCreateDepartmentModal()" class="btn btn-secondary" style="width: 100%;">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function openCreateDepartmentModal() {
+            document.getElementById('departmentModal').style.display = 'flex';
+        }
+        function closeCreateDepartmentModal() {
+            document.getElementById('departmentModal').style.display = 'none';
+        }
+        function editDepartment(id) {
+            alert('Edit department coming soon');
+        }
+        function deleteDepartment(id) {
+            alert('Delete department coming soon');
+        }
+    </script>
+
+    {% endif %}
+</div>
+{% endif %}

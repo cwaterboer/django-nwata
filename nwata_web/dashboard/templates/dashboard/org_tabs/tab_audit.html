@@ -1,0 +1,69 @@
+<!-- Audit Log Tab -->
+{% if active_tab == 'audit' %}
+<div class="tab-content">
+    <!-- Audit Log Card -->
+    <div class="settings-card">
+        <div class="settings-card-title">📝 Audit Log</div>
+        <div class="settings-card-subtitle">Complete immutable history of changes made to your organization</div>
+        
+        {% if audit_logs %}
+        <div style="overflow-x: auto; margin-top: 20px;">
+            <table class="settings-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Resource</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in audit_logs %}
+                    <tr>
+                        <td style="white-space: nowrap; font-size: 0.85em;">
+                            {{ log.timestamp|date:"M d, Y H:i" }}
+                        </td>
+                        <td>
+                            {% if log.actor %}
+                                <span style="font-size: 0.9em;">{{ log.actor.email }}</span>
+                            {% else %}
+                                <span style="font-size: 0.85em; color: #999;">System</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {% if log.action == 'created' %}badge-green{% elif log.action == 'updated' %}badge-blue{% elif log.action == 'deleted' %}badge-red{% elif log.action == 'state_changed' %}badge-yellow{% endif %}">
+                                {{ log.action|upper }}
+                            </span>
+                        </td>
+                        <td style="color: #666; font-size: 0.9em;">{{ log.resource_type }}</td>
+                        <td style="font-size: 0.9em;">
+                            {% if log.changes_after %}
+                            <details>
+                                <summary style="color: #ff6600; cursor: pointer; font-weight: 600;">View</summary>
+                                <div style="margin-top: 10px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto;">
+                                    <pre style="margin: 0; color: #2c3e50; font-size: 0.85em; white-space: pre-wrap; word-break: break-word;">{{ log.changes_after|safe }}</pre>
+                                </div>
+                            </details>
+                            {% else %}
+                            <span style="color: #ccc;">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Note -->
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 0.85em;">
+            Showing last 50 changes. For complete history, contact support.
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 50px 25px; color: #666;">
+            <p>No audit log entries yet. Changes will appear here.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

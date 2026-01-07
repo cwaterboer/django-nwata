@@ -1,0 +1,123 @@
+<!-- Members Tab -->
+{% if active_tab == 'members' %}
+<div class="tab-content">
+    <!-- Invite New Member Card -->
+    <div class="settings-card">
+        <div class="settings-card-title">✉️ Invite New Member</div>
+        <div class="settings-card-subtitle">Add new team members to your organization</div>
+        
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="invite_user" value="1">
+            
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="{{ invite_form.email.id_for_label }}" class="form-label">{{ invite_form.email.label }}</label>
+                    {{ invite_form.email }}
+                    {% if invite_form.email.errors %}
+                        <p style="color: #dc2626; font-size: 0.85em; margin-top: 5px;">{{ invite_form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ invite_form.role.id_for_label }}" class="form-label">{{ invite_form.role.label }}</label>
+                    {{ invite_form.role }}
+                    {% if invite_form.role.errors %}
+                        <p style="color: #dc2626; font-size: 0.85em; margin-top: 5px;">{{ invite_form.role.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn btn-primary">
+                    Send Invitation
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Active Members Card -->
+    <div class="settings-card">
+        <div class="settings-card-title">👥 Active Members ({{ active_users.count }})</div>
+        <div class="settings-card-subtitle">Current team members in your organization</div>
+        
+        {% if active_users %}
+        <div style="overflow-x: auto;">
+            <table class="settings-table">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Joined</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user_role in active_users %}
+                    <tr>
+                        <td>{{ user_role.user.email }}</td>
+                        <td>
+                            <span class="badge badge-blue">
+                                {{ user_role.role.name|upper }}
+                            </span>
+                        </td>
+                        <td>{{ user_role.accepted_at|date:"M d, Y" }}</td>
+                        <td style="font-size: 0.9em;">
+                            {% if user_role.role.name != 'owner' and user_role.user.email != request.user.email %}
+                                <a href="{% url 'change_user_role' user_role.id %}" style="color: #ff6600; text-decoration: none; font-weight: 600;">Change</a>
+                                <span style="color: #d1d5db;">•</span>
+                                <a href="{% url 'remove_user' user_role.id %}" style="color: #dc2626; text-decoration: none; font-weight: 600;">Remove</a>
+                            {% else %}
+                                <span style="color: #999;">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: #666; text-align: center; padding: 30px;">No active members yet. Invite team members above to get started.</p>
+        {% endif %}
+    </div>
+
+    <!-- Pending Invitations Card -->
+    {% if pending_users %}
+    <div class="settings-card">
+        <div class="settings-card-title">⏳ Pending Invitations ({{ pending_users.count }})</div>
+        <div class="settings-card-subtitle">Awaiting acceptance from invited members</div>
+        
+        <div style="overflow-x: auto;">
+            <table class="settings-table">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Invited</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user_role in pending_users %}
+                    <tr>
+                        <td>{{ user_role.user.email|default:"(pending)" }}</td>
+                        <td>
+                            <span class="badge badge-yellow">
+                                {{ user_role.role.name|upper }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-yellow" style="font-size: 0.8em;">
+                                {{ user_role.state|upper }}
+                            </span>
+                        </td>
+                        <td>{{ user_role.invited_at|date:"M d, Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
