@@ -56,5 +56,5 @@ class SignUpForm(UserCreationForm):
 
 
 class LoginForm(forms.Form):
-    username = forms.CharField(max_length=150)
+    identifier = forms.CharField(max_length=150, label="Email or Username")
     password = forms.CharField(widget=forms.PasswordInput)

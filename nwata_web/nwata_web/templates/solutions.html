@@ -1,0 +1,590 @@
+{% extends 'base.html' %}
+
+{% block title %}Solutions - Modular Work Tracking for Every Need{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .back-link {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+    }
+
+    .back-link a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #9ca3af;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .back-link a:hover {
+        color: white;
+    }
+
+    .hero {
+        padding: 5rem 0 8rem;
+        text-align: center;
+    }
+
+    .hero-content {
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    .hero h1 {
+        font-size: 3rem;
+        font-weight: 900;
+        line-height: 1.1;
+        margin-bottom: 2rem;
+    }
+
+    @media (min-width: 768px) {
+        .hero h1 {
+            font-size: 4rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .hero h1 {
+            font-size: 5rem;
+        }
+    }
+
+    .gradient-text-orange {
+        background: linear-gradient(to right, #fb923c, #f97316, #ea580c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero p {
+        font-size: 1.25rem;
+        color: #d1d5db;
+        line-height: 1.8;
+        margin-bottom: 3rem;
+    }
+
+    @media (min-width: 768px) {
+        .hero p {
+            font-size: 1.5rem;
+        }
+    }
+
+    .section {
+        padding: 5rem 0 8rem;
+    }
+
+    .section.gray {
+        background: rgba(17, 24, 39, 0.5);
+    }
+
+    .section.black {
+        background: #000000;
+    }
+
+    .section-container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 4rem;
+    }
+
+    .section-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .section-title {
+            font-size: 3rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .section-title {
+            font-size: 3.75rem;
+        }
+    }
+
+    .section-subtitle {
+        font-size: 1.25rem;
+        color: #d1d5db;
+        max-width: 48rem;
+        margin: 0 auto;
+    }
+
+    .core-card {
+        max-width: 56rem;
+        margin: 0 auto;
+        background: linear-gradient(to bottom right, #1f2937, #111827);
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid #374151;
+        text-align: center;
+    }
+
+    .core-icon {
+        width: 6rem;
+        height: 6rem;
+        background: linear-gradient(to bottom right, #f97316, #ea580c);
+        border-radius: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 3rem;
+    }
+
+    .core-card h3 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    .core-card p {
+        font-size: 1.25rem;
+        color: #d1d5db;
+        margin-bottom: 1.5rem;
+        line-height: 1.8;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        text-align: left;
+    }
+
+    @media (min-width: 768px) {
+        .features-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #d1d5db;
+    }
+
+    .check-icon {
+        color: #fb923c;
+        font-size: 1.25rem;
+    }
+
+    .modules-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    @media (min-width: 768px) {
+        .modules-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .modules-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    .module-card {
+        background: linear-gradient(to bottom right, #1f2937, #111827);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #374151;
+        transition: all 0.3s;
+        text-align: center;
+    }
+
+    .module-card:hover {
+        border-color: rgba(251, 146, 60, 0.5);
+    }
+
+    .module-icon {
+        width: 4rem;
+        height: 4rem;
+        background: linear-gradient(to bottom right, #f97316, #ea580c);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 2rem;
+        transition: transform 0.3s;
+    }
+
+    .module-card:hover .module-icon {
+        transform: scale(1.1);
+    }
+
+    .module-card h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.75rem;
+    }
+
+    .module-card p {
+        font-size: 0.875rem;
+        color: #d1d5db;
+        line-height: 1.6;
+    }
+
+    .configs-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    @media (min-width: 768px) {
+        .configs-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .configs-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    .config-card {
+        background: linear-gradient(to bottom right, #1f2937, #111827);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #374151;
+        transition: all 0.3s;
+        position: relative;
+    }
+
+    .config-card.popular {
+        border: 2px solid rgba(251, 146, 60, 0.5);
+    }
+
+    .config-card:hover {
+        border-color: rgba(251, 146, 60, 0.5);
+    }
+
+    .popular-badge {
+        position: absolute;
+        top: -0.75rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #f97316;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+    }
+
+    .config-card h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .config-card .description {
+        font-size: 0.875rem;
+        color: #d1d5db;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+
+    .config-modules {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-bottom: 0.5rem;
+    }
+
+    .module-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .module-tag {
+        background: rgba(75, 85, 99, 0.5);
+        color: #d1d5db;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+    }
+
+    .config-price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .config-period {
+        font-size: 0.875rem;
+        color: #9ca3af;
+        margin-bottom: 1rem;
+    }
+
+    .config-use-case {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        text-align: center;
+        margin-top: 1rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.5rem;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 0.875rem;
+        width: 100%;
+        text-align: center;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(to right, #f97316, #ea580c);
+        color: white;
+        box-shadow: 0 10px 15px -3px rgba(251, 146, 60, 0.25);
+    }
+
+    .btn-primary:hover {
+        box-shadow: 0 10px 15px -3px rgba(251, 146, 60, 0.4);
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: transparent;
+        color: #d1d5db;
+        border: 2px solid #4b5563;
+    }
+
+    .btn-secondary:hover {
+        background: #1f2937;
+        color: white;
+    }
+
+    .btn-lg {
+        padding: 1rem 2.5rem;
+        font-size: 1.125rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back to Home -->
+<div class="back-link">
+    <a href="{% url 'home' %}">← Back to Home</a>
+</div>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-content">
+        <h1><span class="gradient-text-orange">Modular</span> Solutions for Every Need</h1>
+        <p>Start with your personal work wallet, then unlock only the modules you need. Mix and match to create the perfect solution for your use case.</p>
+    </div>
+</section>
+
+<!-- Core Foundation -->
+<section class="section gray">
+    <div class="section-container">
+        <div class="section-header">
+            <h2 class="section-title">Start with the <span class="gradient-text-orange">Core</span></h2>
+            <p class="section-subtitle">Every Nwata user begins with the foundation - your personal work wallet</p>
+        </div>
+        <div class="core-card">
+            <div class="core-icon">🔑</div>
+            <h3>Personal Work Wallet</h3>
+            <p>Encrypted logging and secure data storage. Your work history belongs to you, stored locally with optional cloud backup. This is the foundation of everything Nwata does.</p>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <span class="check-icon">✓</span>
+                    <span>Local encrypted storage</span>
+                </div>
+                <div class="feature-item">
+                    <span class="check-icon">✓</span>
+                    <span>Privacy-first design</span>
+                </div>
+                <div class="feature-item">
+                    <span class="check-icon">✓</span>
+                    <span>Portable data</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Available Modules -->
+<section class="section black">
+    <div class="section-container">
+        <div class="section-header">
+            <h2 class="section-title">Available <span class="gradient-text-orange">Modules</span></h2>
+            <p class="section-subtitle">Unlock only the capabilities you need. Each module adds specific functionality to your core wallet.</p>
+        </div>
+        <div class="modules-grid">
+            <div class="module-card">
+                <div class="module-icon">👥</div>
+                <h3>Team Insights</h3>
+                <p>Team productivity dashboards and analytics</p>
+            </div>
+            <div class="module-card">
+                <div class="module-icon">💼</div>
+                <h3>Freelance Portfolio</h3>
+                <p>Project tracking and client verification</p>
+            </div>
+            <div class="module-card">
+                <div class="module-icon">📈</div>
+                <h3>AI Personal Development</h3>
+                <p>Skills analysis and growth recommendations</p>
+            </div>
+            <div class="module-card">
+                <div class="module-icon">🛡️</div>
+                <h3>HR Audit & Compliance</h3>
+                <p>Auditable work logs and compliance reporting</p>
+            </div>
+            <div class="module-card">
+                <div class="module-icon">🎯</div>
+                <h3>Project Management</h3>
+                <p>Time tracking and project reporting</p>
+            </div>
+            <div class="module-card">
+                <div class="module-icon">🔒</div>
+                <h3>Enterprise Security</h3>
+                <p>Advanced encryption and access controls</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Preconfigured Solutions -->
+<section class="section gray">
+    <div class="section-container">
+        <div class="section-header">
+            <h2 class="section-title">Preconfigured <span class="gradient-text-orange">Solutions</span></h2>
+            <p class="section-subtitle">Ready-made configurations for common use cases. Each includes the core wallet plus the modules you need.</p>
+        </div>
+        <div class="configs-grid">
+            <div class="config-card">
+                <h3>Remote Team</h3>
+                <p class="description">Manage distributed teams without micromanagement</p>
+                <p class="config-modules">Includes modules:</p>
+                <div class="module-tags">
+                    <span class="module-tag">Team Insights</span>
+                </div>
+                <div class="config-price">$15</div>
+                <p class="config-period">per user/month</p>
+                <a href="#" class="btn btn-primary btn-sm">Request Demo</a>
+                <p class="config-use-case">Perfect for: Remote & Distributed Teams</p>
+            </div>
+
+            <div class="config-card">
+                <h3>Freelance Pro</h3>
+                <p class="description">Build verified work history for clients</p>
+                <p class="config-modules">Includes modules:</p>
+                <div class="module-tags">
+                    <span class="module-tag">Freelance Portfolio</span>
+                    <span class="module-tag">AI Development</span>
+                </div>
+                <div class="config-price">$12</div>
+                <p class="config-period">per user/month</p>
+                <a href="{% url 'signup' %}" class="btn btn-primary btn-sm">Get Started</a>
+                <p class="config-use-case">Perfect for: Freelancers & Contractors</p>
+            </div>
+
+            <div class="config-card popular">
+                <span class="popular-badge">MOST POPULAR</span>
+                <h3>Career Wallet</h3>
+                <p class="description">Portable verified work history</p>
+                <p class="config-modules">Includes modules:</p>
+                <div class="module-tags">
+                    <span class="module-tag">Freelance Portfolio</span>
+                </div>
+                <div class="config-price">$8</div>
+                <p class="config-period">per user/month</p>
+                <a href="{% url 'signup' %}" class="btn btn-primary btn-sm">Get Started</a>
+                <p class="config-use-case">Perfect for: Career Mobility</p>
+            </div>
+
+            <div class="config-card">
+                <h3>Offshore Ops</h3>
+                <p class="description">Ethical oversight for offshore teams</p>
+                <p class="config-modules">Includes modules:</p>
+                <div class="module-tags">
+                    <span class="module-tag">Team Insights</span>
+                    <span class="module-tag">AI Development</span>
+                </div>
+                <div class="config-price">$18</div>
+                <p class="config-period">per user/month</p>
+                <a href="#" class="btn btn-primary btn-sm">Request Demo</a>
+                <p class="config-use-case">Perfect for: Offshore Human Resourcing</p>
+            </div>
+
+            <div class="config-card">
+                <h3>Audit Ready</h3>
+                <p class="description">Compliance-ready productivity tracking</p>
+                <p class="config-modules">Includes modules:</p>
+                <div class="module-tags">
+                    <span class="module-tag">HR Compliance</span>
+                    <span class="module-tag">Team Insights</span>
+                </div>
+                <div class="config-price">$20</div>
+                <p class="config-period">per user/month</p>
+                <a href="#" class="btn btn-primary btn-sm">Request Demo</a>
+                <p class="config-use-case">Perfect for: HR & Compliance Auditing</p>
+            </div>
+
+            <div class="config-card">
+                <h3>Project Tracker</h3>
+                <p class="description">Track time and effort by project</p>
+                <p class="config-modules">Includes modules:</p>
+                <div class="module-tags">
+                    <span class="module-tag">Project Management</span>
+                    <span class="module-tag">Team Insights</span>
+                </div>
+                <div class="config-price">$22</div>
+                <p class="config-period">per user/month</p>
+                <a href="#" class="btn btn-primary btn-sm">Request Demo</a>
+                <p class="config-use-case">Perfect for: Project Management</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="section black" style="text-align: center;">
+    <div class="section-container">
+        <h2 class="section-title">Ready to <span class="gradient-text-orange">Build</span> Your Solution?</h2>
+        <p class="section-subtitle" style="margin-bottom: 2rem;">Start with your personal wallet and unlock the modules you need. Or let us help you find the perfect preconfigured solution.</p>
+        <div style="display: flex; flex-direction: column; gap: 1rem; justify-content: center; max-width: 32rem; margin: 0 auto;">
+            <a href="{% url 'signup' %}" class="btn btn-primary btn-lg">Start Free Wallet</a>
+            <a href="{% url 'use_cases' %}" class="btn btn-secondary btn-lg">Explore Use Cases</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

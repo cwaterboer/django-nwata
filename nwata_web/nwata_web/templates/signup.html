@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #000000;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -22,9 +22,10 @@
         }
 
         .signup-container {
-            background: white;
+            background: linear-gradient(to bottom right, #1f2937, #111827);
             border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid #374151;
             max-width: 450px;
             width: 100%;
             padding: 40px;
@@ -36,13 +37,16 @@
         }
 
         .logo h1 {
-            color: #667eea;
+            background: linear-gradient(to right, #fb923c, #f97316, #ea580c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             font-size: 2em;
             margin-bottom: 5px;
         }
 
         .logo p {
-            color: #666;
+            color: #d1d5db;
             font-size: 0.9em;
         }
 
@@ -57,25 +61,41 @@
         }
 
         .message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: rgba(34, 197, 94, 0.1);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
         }
 
         .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         .form-group {
             margin-bottom: 20px;
         }
 
+        /* Grid layout: 1 column on mobile, 2 on desktop */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px 20px;
+        }
+
+        @media (min-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .form-group.full-width {
+                grid-column: 1 / -1;
+            }
+        }
+
         label {
             display: block;
             margin-bottom: 8px;
-            color: #333;
+            color: #d1d5db;
             font-weight: 500;
             font-size: 0.9em;
         }
@@ -83,20 +103,23 @@
         input {
             width: 100%;
             padding: 12px 15px;
-            border: 2px solid #e0e0e0;
+            background: #111827;
+            border: 2px solid #374151;
             border-radius: 8px;
             font-size: 1em;
-            transition: border-color 0.3s;
+            color: #ffffff;
+            transition: border-color 0.3s, background-color 0.3s;
         }
 
         input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #fb923c;
+            background: #1f2937;
         }
 
         .help-text {
             font-size: 0.8em;
-            color: #666;
+            color: #9ca3af;
             margin-top: 5px;
         }
 
@@ -106,14 +129,14 @@
         }
 
         .errorlist li {
-            color: #dc3545;
+            color: #f87171;
             font-size: 0.85em;
         }
 
         button {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(to right, #f97316, #ea580c);
             color: white;
             border: none;
             border-radius: 8px;
@@ -121,11 +144,12 @@
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 10px 15px -3px rgba(251, 146, 60, 0.25);
         }
 
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 15px -3px rgba(251, 146, 60, 0.4);
         }
 
         button:active {
@@ -135,17 +159,18 @@
         .login-link {
             text-align: center;
             margin-top: 20px;
-            color: #666;
+            color: #9ca3af;
             font-size: 0.9em;
         }
 
         .login-link a {
-            color: #667eea;
+            color: #fb923c;
             text-decoration: none;
             font-weight: 600;
         }
 
         .login-link a:hover {
+            color: #f97316;
             text-decoration: underline;
         }
     </style>
@@ -167,104 +192,105 @@
 
         <form method="post">
             {% csrf_token %}
-            
-            <div class="form-group">
-                <label for="id_first_name">First Name</label>
-                {{ form.first_name }}
-                {% if form.first_name.help_text %}
-                    <div class="help-text">{{ form.first_name.help_text }}</div>
-                {% endif %}
-                {% if form.first_name.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.first_name.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="id_first_name">First Name</label>
+                    {{ form.first_name }}
+                    {% if form.first_name.help_text %}
+                        <div class="help-text">{{ form.first_name.help_text }}</div>
+                    {% endif %}
+                    {% if form.first_name.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.first_name.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
 
-            <div class="form-group">
-                <label for="id_last_name">Last Name</label>
-                {{ form.last_name }}
-                {% if form.last_name.help_text %}
-                    <div class="help-text">{{ form.last_name.help_text }}</div>
-                {% endif %}
-                {% if form.last_name.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.last_name.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+                <div class="form-group">
+                    <label for="id_last_name">Last Name</label>
+                    {{ form.last_name }}
+                    {% if form.last_name.help_text %}
+                        <div class="help-text">{{ form.last_name.help_text }}</div>
+                    {% endif %}
+                    {% if form.last_name.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.last_name.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
 
-            <div class="form-group">
-                <label for="id_username">Username</label>
-                {{ form.username }}
-                {% if form.username.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.username.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+                <div class="form-group">
+                    <label for="id_username">Username</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.username.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
 
-            <div class="form-group">
-                <label for="id_email">Email</label>
-                {{ form.email }}
-                {% if form.email.help_text %}
-                    <div class="help-text">{{ form.email.help_text }}</div>
-                {% endif %}
-                {% if form.email.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.email.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+                <div class="form-group">
+                    <label for="id_email">Email</label>
+                    {{ form.email }}
+                    {% if form.email.help_text %}
+                        <div class="help-text">{{ form.email.help_text }}</div>
+                    {% endif %}
+                    {% if form.email.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.email.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
 
-            <div class="form-group">
-                <label for="id_organization_name">Organization Name</label>
-                {{ form.organization_name }}
-                {% if form.organization_name.help_text %}
-                    <div class="help-text">{{ form.organization_name.help_text }}</div>
-                {% endif %}
-                {% if form.organization_name.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.organization_name.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+                <div class="form-group full-width">
+                    <label for="id_organization_name">Organization Name</label>
+                    {{ form.organization_name }}
+                    {% if form.organization_name.help_text %}
+                        <div class="help-text">{{ form.organization_name.help_text }}</div>
+                    {% endif %}
+                    {% if form.organization_name.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.organization_name.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
 
-            <div class="form-group">
-                <label for="id_password1">Password</label>
-                {{ form.password1 }}
-                {% if form.password1.help_text %}
-                    <div class="help-text">{{ form.password1.help_text }}</div>
-                {% endif %}
-                {% if form.password1.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.password1.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </div>
+                <div class="form-group">
+                    <label for="id_password1">Password</label>
+                    {{ form.password1 }}
+                    {% if form.password1.help_text %}
+                        <div class="help-text">{{ form.password1.help_text }}</div>
+                    {% endif %}
+                    {% if form.password1.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.password1.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
 
-            <div class="form-group">
-                <label for="id_password2">Confirm Password</label>
-                {{ form.password2 }}
-                {% if form.password2.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.password2.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+                <div class="form-group">
+                    <label for="id_password2">Confirm Password</label>
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.password2.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
             </div>
 
             <button type="submit">Create Account</button>

@@ -1,152 +1,800 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nwata - Productivity Tracking</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+{% extends 'base.html' %}
+
+{% block title %}Nwata - Your Work. Your Data. Your Career.{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* Hero Section */
+    .hero-section {
+        position: relative;
+        padding: 5rem 0 8rem;
+        overflow: hidden;
+    }
+
+    .hero-bg {
+        position: relative;
+        inset: 0;
+        padding: 2rem 0 0 2rem;
+    }
+
+    .hero-gradient {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 30% 20%, rgba(251, 146, 60, 0.1), transparent 50%);
+    }
+
+    .hero-container {
+        position: relative;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 7rem 1.5rem;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3rem;
+        align-items: center;
+    }
+
+    @media (min-width: 1024px) {
+        .hero-container {
+            grid-template-columns: 1fr 1fr;
+            gap: 5rem;
+        }
+    }
+
+    .hero-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+        font-weight: 900;
+        line-height: 1.1;
+    }
+
+    @media (min-width: 768px) {
+        .hero-title {
+            font-size: 3.5rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .hero-title {
+            font-size: 4.5rem;
+        }
+    }
+
+    .gradient-text-white {
+        background: linear-gradient(to right, #ffffff, #e5e7eb, #d1d5db);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .gradient-text-orange {
+        background: linear-gradient(to right, #fb923c, #f97316, #ea580c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-subtitle {
+        font-size: 1.125rem;
+        color: #d1d5db;
+        line-height: 1.8;
+        max-width: 42rem;
+    }
+
+    @media (min-width: 768px) {
+        .hero-subtitle {
+            font-size: 1.25rem;
+        }
+    }
+
+    .hero-subtitle .highlight {
+        color: #fb923c;
+        font-weight: 600;
+    }
+
+    .hero-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    @media (min-width: 640px) {
+        .hero-buttons {
+            flex-direction: row;
+        }
+    }
+
+    .btn-lg {
+        padding: 1rem 2rem;
+        font-size: 1.125rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+    }
+
+    .hero-visual {
+        position: relative;
+    }
+
+    .wallet-card {
+        position: relative;
+        z-index: 10;
+        background: linear-gradient(to bottom right, #1f2937, #111827);
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid #374151;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .wallet-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .wallet-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        background: linear-gradient(to bottom right, #f97316, #ea580c);
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .wallet-title {
+        color: white;
+        font-weight: 600;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid;
+    }
+
+    .stat-card.focus {
+        background: linear-gradient(to bottom right, rgba(251, 146, 60, 0.2), rgba(234, 88, 12, 0.2));
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .stat-card.hours {
+        background: linear-gradient(to bottom right, rgba(55, 65, 81, 0.5), rgba(31, 41, 55, 0.5));
+        border-color: #4b5563;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-value.orange {
+        color: #fb923c;
+    }
+
+    .stat-value.gray {
+        color: #d1d5db;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+    }
+
+    .stat-label.orange {
+        color: #d1d5db;
+    }
+
+    .stat-label.gray {
+        color: #9ca3af;
+    }
+
+    .placeholder-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .bar {
+        height: 0.75rem;
+        background: #374151;
+        border-radius: 0.25rem;
+    }
+
+    .bar.full {
+        width: 100%;
+    }
+
+    .bar.three-quarters {
+        width: 75%;
+    }
+
+    .bar.five-sixths {
+        width: 83%;
+    }
+
+    .export-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .export-btn {
+        flex: 1;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        text-align: center;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: 1px solid;
+    }
+
+    .export-btn.green {
+        background: linear-gradient(to bottom right, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.2));
+        border-color: rgba(34, 197, 94, 0.3);
+        color: #4ade80;
+    }
+
+    .export-btn.blue {
+        background: linear-gradient(to bottom right, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
+        border-color: rgba(59, 130, 246, 0.3);
+        color: #60a5fa;
+    }
+
+    .wallet-glow {
+        position: absolute;
+        inset: -1rem;
+        background: linear-gradient(to right, rgba(251, 146, 60, 0.2), transparent);
+        border-radius: 2rem;
+        filter: blur(3rem);
+        z-index: 0;
+    }
+
+    /* Core Principles Section */
+    .principles-section {
+        padding: 5rem 0 8rem;
+        background: rgba(17, 24, 39, 0.5);
+    }
+
+    .section-container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 4rem;
+    }
+
+    .section-title {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .section-title {
+            font-size: 3rem;
+        }
+    }
+
+    .section-subtitle {
+        font-size: 1.125rem;
+        color: #d1d5db;
+        max-width: 48rem;
+        margin: 0 auto;
+    }
+
+    .principles-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    @media (min-width: 768px) {
+        .principles-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    .principle-card {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .principle-icon {
+        width: 5rem;
+        height: 5rem;
+        background: linear-gradient(to bottom right, #f97316, #ea580c);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        font-size: 2.5rem;
+    }
+
+    .principle-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    @media (min-width: 768px) {
+        .principle-title {
+            font-size: 1.5rem;
+        }
+    }
+
+    .principle-text {
+        color: #d1d5db;
+    }
+
+    /* How Wallet Works Section */
+    .workflow-section {
+        padding: 5rem 0 8rem;
+        background: #000000;
+    }
+
+    .workflow-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    @media (min-width: 1024px) {
+        .workflow-grid {
+            grid-template-columns: repeat(5, 1fr);
+        }
+    }
+
+    .workflow-step {
+        position: relative;
+        text-align: center;
+    }
+
+    .workflow-card {
+        background: linear-gradient(to bottom right, #1f2937, #111827);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #374151;
+    }
+
+    .workflow-icon {
+        width: 4rem;
+        height: 4rem;
+        background: linear-gradient(to bottom right, #f97316, #ea580c);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 2rem;
+    }
+
+    .workflow-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .workflow-text {
+        font-size: 0.875rem;
+        color: #d1d5db;
+    }
+
+    .workflow-arrow {
+        display: none;
+        position: absolute;
+        top: 50%;
+        right: -1rem;
+        transform: translateY(-50%);
+        color: #f97316;
+        font-size: 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+        .workflow-arrow {
+            display: block;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #ff6f00 0%, #af08d0 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+        .workflow-step:last-child .workflow-arrow {
+            display: none;
         }
+    }
 
-        .home-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 600px;
-            width: 100%;
-            padding: 60px 40px;
-            text-align: center;
+    /* Features Section */
+    .features-section {
+        padding: 5rem 0 8rem;
+        background: rgba(17, 24, 39, 0.5);
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    @media (min-width: 768px) {
+        .features-grid {
+            grid-template-columns: repeat(3, 1fr);
         }
+    }
 
-        .logo {
-            margin-bottom: 30px;
+    .feature-card {
+        background: linear-gradient(to bottom right, #1f2937, #111827);
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid #374151;
+        transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+        border-color: rgba(251, 146, 60, 0.5);
+    }
+
+    .feature-icon {
+        width: 4rem;
+        height: 4rem;
+        background: linear-gradient(to bottom right, #f97316, #ea580c);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+        font-size: 2rem;
+        transition: transform 0.3s;
+    }
+
+    .feature-card:hover .feature-icon {
+        transform: scale(1.1);
+    }
+
+    .feature-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .feature-title {
+            font-size: 1.5rem;
         }
+    }
 
-        .logo h1 {
-            color: #667eea;
-            font-size: 3.5em;
-            margin-bottom: 10px;
-            font-weight: 700;
+    .feature-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #d1d5db;
+    }
+
+    .check-icon {
+        color: #fb923c;
+        font-size: 1.25rem;
+    }
+
+    /* CTA Section */
+    .cta-section {
+        position: relative;
+        padding: 5rem 0 8rem;
+        background: #000000;
+        overflow: hidden;
+    }
+
+    .cta-bg {
+        position: absolute;
+        inset: 0;
+        opacity: 0.2;
+    }
+
+    .cta-content {
+        position: relative;
+        max-width: 56rem;
+        margin: 0 auto;
+        text-align: center;
+        padding: 0 1.5rem;
+    }
+
+    .cta-title {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .cta-title {
+            font-size: 3rem;
         }
+    }
 
-        .tagline {
-            color: #666;
-            font-size: 1.2em;
-            margin-bottom: 15px;
-            line-height: 1.6;
+    @media (min-width: 1024px) {
+        .cta-title {
+            font-size: 3.75rem;
         }
+    }
 
-        .description {
-            color: #888;
-            font-size: 1em;
-            margin-bottom: 40px;
-            line-height: 1.5;
+    .cta-text {
+        font-size: 1.125rem;
+        color: #d1d5db;
+        margin-bottom: 2rem;
+        line-height: 1.8;
+    }
+
+    @media (min-width: 768px) {
+        .cta-text {
+            font-size: 1.25rem;
         }
+    }
 
+    .cta-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    @media (min-width: 640px) {
         .cta-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
+            flex-direction: row;
         }
+    }
+</style>
+{% endblock %}
 
-        .btn {
-            padding: 14px 32px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1em;
-            transition: transform 0.2s, box-shadow 0.2s;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-        }
-
-        .btn-secondary:hover {
-            background: #f8f9ff;
-            transform: translateY(-2px);
-        }
-
-        .features {
-            margin-top: 50px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 20px;
-        }
-
-        .feature {
-            padding: 20px;
-            background: #f8f9ff;
-            border-radius: 12px;
-        }
-
-        .feature h3 {
-            color: #667eea;
-            font-size: 1em;
-            margin-bottom: 8px;
-        }
-
-        .feature p {
-            color: #666;
-            font-size: 0.85em;
-        }
-    </style>
-</head>
-<body>
-    <div class="home-container">
-        <div class="logo">
-            <h1>Nwata</h1>
-        </div>
-
-        <p class="tagline">Track your productivity, amplify your focus</p>
-        <p class="description">Monitor app usage, time spent, and gamify your daily activities with real-time insights and analytics.</p>
-
-        <div class="cta-buttons">
-            <a href="{% url 'signup' %}" class="btn btn-primary">Get Started</a>
-            <a href="{% url 'login' %}" class="btn btn-secondary">Log In</a>
-        </div>
-
-        <div class="features">
-            <div class="feature">
-                <h3>📊 Real-time Tracking</h3>
-                <p>Monitor app usage as it happens</p>
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-bg"></div>
+    <div class="hero-gradient"></div>
+    <div class="hero-container">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="gradient-text-white">Your Work.</span><br>
+                <span class="gradient-text-orange">Your Data.</span><br>
+                <span class="gradient-text-white">Your Career.</span>
+            </h1>
+            <p class="hero-subtitle">
+                Nwata lets employees own their productivity history while giving employers meaningful, consented insights.
+                <span class="highlight">Build a personal work wallet that travels with you.</span>
+            </p>
+            <div class="hero-buttons">
+                <a href="{% url 'signup' %}" class="btn btn-primary btn-lg">
+                    Get Started for Free →
+                </a>
+                <a href="#" class="btn btn-secondary btn-lg">Request Demo</a>
             </div>
-            <div class="feature">
-                <h3>🎮 Gamification</h3>
-                <p>Points, streaks & achievements</p>
-            </div>
-            <div class="feature">
-                <h3>📈 Analytics</h3>
-                <p>Detailed insights & reports</p>
+        </div>
+        <div class="hero-visual">
+            <div class="wallet-glow"></div>
+            <div class="wallet-card">
+                <div class="wallet-header">
+                    <div class="wallet-icon">🔑</div>
+                    <div class="wallet-title">Personal Work Wallet</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card focus">
+                        <div class="stat-value orange">87%</div>
+                        <div class="stat-label orange">Focus Score</div>
+                    </div>
+                    <div class="stat-card hours">
+                        <div class="stat-value gray">156</div>
+                        <div class="stat-label gray">Hours Tracked</div>
+                    </div>
+                </div>
+                <div class="placeholder-bars">
+                    <div class="bar full"></div>
+                    <div class="bar three-quarters"></div>
+                    <div class="bar five-sixths"></div>
+                </div>
+                <div class="export-buttons">
+                    <div class="export-btn green">Export CV</div>
+                    <div class="export-btn blue">Share with Employer</div>
+                </div>
             </div>
         </div>
     </div>
-</body>
-</html>
+</section>
+
+<!-- Core Principles Section -->
+<section class="principles-section">
+    <div class="section-container">
+        <div class="section-header">
+            <h2 class="section-title">Core <span class="gradient-text-orange">Principles</span></h2>
+            <p class="section-subtitle">Built on the foundation of employee empowerment and data ownership</p>
+        </div>
+        <div class="principles-grid">
+            <div class="principle-card">
+                <div class="principle-icon">🔒</div>
+                <h3 class="principle-title">Employees Own Their Data</h3>
+                <p class="principle-text">Your work history belongs to you, stored securely in your personal encrypted wallet.</p>
+            </div>
+            <div class="principle-card">
+                <div class="principle-icon">🛡️</div>
+                <h3 class="principle-title">Encrypted & Portable</h3>
+                <p class="principle-text">All data is encrypted and travels with you from job to job, company to company.</p>
+            </div>
+            <div class="principle-card">
+                <div class="principle-icon">🔑</div>
+                <h3 class="principle-title">Consent-Driven Sharing</h3>
+                <p class="principle-text">You control what employers see, when they see it, and for how long.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How the Wallet Works -->
+<section class="workflow-section">
+    <div class="section-container">
+        <div class="section-header">
+            <h2 class="section-title">How the <span class="gradient-text-orange">Wallet</span> Works</h2>
+            <p class="section-subtitle">A step-by-step flow that puts you in control of your work data</p>
+        </div>
+        <div class="workflow-grid">
+            <div class="workflow-step">
+                <div class="workflow-card">
+                    <div class="workflow-icon">📥</div>
+                    <h3 class="workflow-title">1. Agent</h3>
+                    <p class="workflow-text">Lightweight tracker logs your work patterns</p>
+                </div>
+                <span class="workflow-arrow">→</span>
+            </div>
+            <div class="workflow-step">
+                <div class="workflow-card">
+                    <div class="workflow-icon">💾</div>
+                    <h3 class="workflow-title">2. Local Wallet</h3>
+                    <p class="workflow-text">Encrypted storage on your device</p>
+                </div>
+                <span class="workflow-arrow">→</span>
+            </div>
+            <div class="workflow-step">
+                <div class="workflow-card">
+                    <div class="workflow-icon">☁️</div>
+                    <h3 class="workflow-title">3. Cloud Sync</h3>
+                    <p class="workflow-text">Optional backup to your personal cloud</p>
+                </div>
+                <span class="workflow-arrow">→</span>
+            </div>
+            <div class="workflow-step">
+                <div class="workflow-card">
+                    <div class="workflow-icon">👁️</div>
+                    <h3 class="workflow-title">4. Employer Access</h3>
+                    <p class="workflow-text">Permissioned summaries only</p>
+                </div>
+                <span class="workflow-arrow">→</span>
+            </div>
+            <div class="workflow-step">
+                <div class="workflow-card">
+                    <div class="workflow-icon">📄</div>
+                    <h3 class="workflow-title">5. Export</h3>
+                    <p class="workflow-text">Take your history anywhere</p>
+                </div>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 3rem;">
+            <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg">See Full Demo</a>
+        </div>
+    </div>
+</section>
+
+<!-- Why Nwata Wins -->
+<section class="features-section">
+    <div class="section-container">
+        <div class="section-header">
+            <h2 class="section-title">Why <span class="gradient-text-orange">Nwata</span> Wins</h2>
+            <p class="section-subtitle">Empowerment, not surveillance. We're building the future of work identity.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3 class="feature-title">For Employees</h3>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <span class="check-icon">✓</span>
+                        <span>Own your data</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="check-icon">✓</span>
+                        <span>Build digital resume</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="check-icon">✓</span>
+                        <span>Export work history</span>
+                    </div>
+                </div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3 class="feature-title">For Employers</h3>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <span class="check-icon">✓</span>
+                        <span>Get actionable insights</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="check-icon">✓</span>
+                        <span>Audit productivity</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="check-icon">✓</span>
+                        <span>Measure team efficiency</span>
+                    </div>
+                </div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3 class="feature-title">Ethics & Compliance</h3>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <span class="check-icon">✓</span>
+                        <span>Fully consent-based</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="check-icon">✓</span>
+                        <span>GDPR/POPIA-friendly</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="check-icon">✓</span>
+                        <span>Transparent & ethical</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 3rem;">
+            <a href="{% url 'about' %}" class="btn btn-secondary btn-lg">Learn More About Our Approach</a>
+        </div>
+    </div>
+</section>
+
+<!-- Final CTA Section -->
+<section class="cta-section">
+    <div class="cta-bg">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 560" preserveAspectRatio="xMidYMid slice" style="width: 100%; height: 100%;">
+            <g fill="none">
+                <path d="M -220.954464989592,218 C -124.95,233.6 67.05,316.2 259.045535010408,296 C 451.05,275.8 547.05,109.8 739.045535010408,117 C 931.05,124.2 1027.05,316.2 1219.045535010408,332 C 1411.05,347.8 1654.85,173.4 1699.045535010408,196 C 1743.24,218.6 1491.81,395.2 1440,445" stroke="rgba(255, 110, 0, 0.6)" stroke-width="2"/>
+                <path d="M -520.3644118170699,175 C -424.36,207 -232.36,318 -40.36441181706994,335 C 151.64,352 247.64,252.8 439.63558818293006,260 C 631.64,267.2 727.64,385 919.6355881829301,371 C 1111.64,357 1295.56,189 1399.63558818293,190 C 1503.71,191 1431.93,338.8 1440,376" stroke="rgba(255, 110, 0, 0.4)" stroke-width="2"/>
+                <path d="M -270.7219993697246,150 C -174.72,179.4 17.28,285 209.27800063027541,297 C 401.28,309 497.28,188.8 689.2780006302754,210 C 881.28,231.2 977.28,406.2 1169.2780006302755,403 C 1361.28,399.8 1595.13,192.8 1649.2780006302755,194 C 1703.42,195.2 1481.86,366 1440,409" stroke="rgba(255, 110, 0, 0.5)" stroke-width="2"/>
+            </g>
+        </svg>
+    </div>
+    <div class="cta-content">
+        <h2 class="cta-title">
+            Start Building Your <span class="gradient-text-orange">Work Wallet</span> Today
+        </h2>
+        <p class="cta-text">
+            Join the revolution in work identity. Your data, your control, your future.
+        </p>
+        <div class="cta-buttons">
+            <a href="{% url 'signup' %}" class="btn btn-primary btn-lg">Sign Up Free</a>
+            <a href="#" class="btn btn-secondary btn-lg">Request Demo</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

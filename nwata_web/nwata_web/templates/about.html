@@ -1,0 +1,655 @@
+{% extends 'base.html' %}
+
+{% block title %}About Nwata - Building the Future of Work Identity{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .back-link {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+    }
+
+    .back-link a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #9ca3af;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .back-link a:hover {
+        color: white;
+    }
+
+    .about-hero {
+        padding: 5rem 0 8rem;
+        text-align: center;
+    }
+
+    .about-hero-content {
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    .about-hero h1 {
+        font-size: 3rem;
+        font-weight: 900;
+        line-height: 1.1;
+        margin-bottom: 2rem;
+    }
+
+    @media (min-width: 768px) {
+        .about-hero h1 {
+            font-size: 4rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .about-hero h1 {
+            font-size: 5rem;
+        }
+    }
+
+    .about-hero p {
+        font-size: 1.25rem;
+        color: #d1d5db;
+        line-height: 1.8;
+        margin-bottom: 3rem;
+    }
+
+    @media (min-width: 768px) {
+        .about-hero p {
+            font-size: 1.5rem;
+        }
+    }
+
+    .mission-section {
+        padding: 5rem 0 8rem;
+        background: rgba(17, 24, 39, 0.5);
+    }
+
+    .mission-content {
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 4rem;
+    }
+
+    .section-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .section-title {
+            font-size: 3rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .section-title {
+            font-size: 3.75rem;
+        }
+    }
+
+    .gradient-text-orange {
+        background: linear-gradient(to right, #fb923c, #f97316, #ea580c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .section-subtitle {
+        font-size: 1.25rem;
+        color: #d1d5db;
+        max-width: 48rem;
+        margin: 0 auto;
+    }
+
+    .mission-card {
+        background: linear-gradient(to bottom right, #1f2937, #111827);
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid #374151;
+    }
+
+    .mission-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    @media (min-width: 768px) {
+        .mission-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    .mission-item {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .mission-icon {
+        width: 4rem;
+        height: 4rem;
+        background: linear-gradient(to bottom right, #f97316, #ea580c);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        font-size: 2rem;
+    }
+
+    .mission-item h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .mission-item p {
+        color: #d1d5db;
+    }
+
+    .story-section {
+        padding: 5rem 0 8rem;
+        background: #000000;
+    }
+
+    .story-content {
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    .story-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        font-size: 1.125rem;
+        color: #d1d5db;
+        line-height: 1.8;
+    }
+
+    .ethics-section {
+        padding: 5rem 0 8rem;
+        background: rgba(17, 24, 39, 0.5);
+    }
+
+    .ethics-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .ethics-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .ethics-card {
+        background: linear-gradient(to bottom right, #1f2937, #111827);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #374151;
+    }
+
+    .ethics-card h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    .ethics-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .ethics-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #d1d5db;
+    }
+
+    .check-icon {
+        color: #fb923c;
+        font-size: 1.25rem;
+    }
+
+    .faq-section {
+        padding: 5rem 0 8rem;
+        background: #000000;
+    }
+
+    .faq-content {
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    .faq-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .faq-item {
+        background: linear-gradient(to bottom right, #1f2937, #111827);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #374151;
+    }
+
+    .faq-item h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.75rem;
+    }
+
+    .faq-item p {
+        color: #d1d5db;
+    }
+
+    .careers-section {
+        padding: 5rem 0 8rem;
+        background: rgba(17, 24, 39, 0.5);
+        text-align: center;
+    }
+
+    .careers-content {
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    .careers-content h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .careers-content h2 {
+            font-size: 3rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .careers-content h2 {
+            font-size: 3.75rem;
+        }
+    }
+
+    .careers-content > p {
+        font-size: 1.25rem;
+        color: #d1d5db;
+        margin-bottom: 2rem;
+        line-height: 1.8;
+    }
+
+    .careers-card {
+        background: linear-gradient(to bottom right, #1f2937, #111827);
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid #374151;
+        margin-bottom: 2rem;
+    }
+
+    .careers-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        text-align: left;
+    }
+
+    @media (min-width: 768px) {
+        .careers-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .careers-grid h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.75rem;
+    }
+
+    .careers-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #d1d5db;
+    }
+
+    .careers-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-lg {
+        padding: 1rem 2.5rem;
+        font-size: 1.125rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+    }
+
+    .cta-section {
+        position: relative;
+        padding: 5rem 0 8rem;
+        background: #000000;
+        overflow: hidden;
+    }
+
+    .cta-bg {
+        position: absolute;
+        inset: 0;
+        opacity: 0.2;
+    }
+
+    .cta-content {
+        position: relative;
+        max-width: 56rem;
+        margin: 0 auto;
+        text-align: center;
+        padding: 0 1.5rem;
+    }
+
+    .cta-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .cta-title {
+            font-size: 3rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .cta-title {
+            font-size: 3.75rem;
+        }
+    }
+
+    .cta-text {
+        font-size: 1.25rem;
+        color: #d1d5db;
+        margin-bottom: 2rem;
+        line-height: 1.8;
+    }
+
+    .cta-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    @media (min-width: 640px) {
+        .cta-buttons {
+            flex-direction: row;
+        }
+    }
+
+    .btn {
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.5rem;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(to right, #f97316, #ea580c);
+        color: white;
+        box-shadow: 0 10px 15px -3px rgba(251, 146, 60, 0.25);
+    }
+
+    .btn-primary:hover {
+        box-shadow: 0 10px 15px -3px rgba(251, 146, 60, 0.4);
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: transparent;
+        color: #d1d5db;
+        border: 2px solid #4b5563;
+    }
+
+    .btn-secondary:hover {
+        background: #1f2937;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back to Home -->
+<div class="back-link">
+    <a href="{% url 'home' %}">← Back to Home</a>
+</div>
+
+<!-- Hero Section -->
+<section class="about-hero">
+    <div class="about-hero-content">
+        <h1>About <span class="gradient-text-orange">Nwata</span></h1>
+        <p>We're building the future of work identity, where employees own their data and employers get meaningful insights through consent.</p>
+    </div>
+</section>
+
+<!-- Mission Statement -->
+<section class="mission-section">
+    <div class="mission-content">
+        <div class="section-header">
+            <h2 class="section-title">Our <span class="gradient-text-orange">Mission</span></h2>
+            <p class="section-subtitle">Empowering employees to own their work history while providing organizations meaningful insights under consent.</p>
+        </div>
+        <div class="mission-card">
+            <div class="mission-grid">
+                <div class="mission-item">
+                    <div class="mission-icon">🔑</div>
+                    <h3>Data Ownership</h3>
+                    <p>Employees control their work data</p>
+                </div>
+                <div class="mission-item">
+                    <div class="mission-icon">🛡️</div>
+                    <h3>Privacy First</h3>
+                    <p>Built on consent and encryption</p>
+                </div>
+                <div class="mission-item">
+                    <div class="mission-icon">👥</div>
+                    <h3>Empowerment</h3>
+                    <p>Better insights for everyone</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Founding Story -->
+<section class="story-section">
+    <div class="story-content">
+        <div class="section-header">
+            <h2 class="section-title">Our <span class="gradient-text-orange">Story</span></h2>
+            <p class="section-subtitle">How Nwata came to be and why we're passionate about changing the future of work</p>
+        </div>
+        <div class="story-text">
+            <p>Nwata was born from a simple observation: in today's digital workplace, employees generate vast amounts of valuable data about their work patterns, skills, and productivity, but they have no ownership or control over this information.</p>
+            <p>Meanwhile, employers struggle to get meaningful insights into team performance without resorting to surveillance tools that erode trust and violate privacy. The current solutions create a lose-lose situation for everyone involved.</p>
+            <p>We believe there's a better way. A way where employees own their work data, stored securely in personal encrypted wallets. A way where employers get actionable insights through transparent, consent-driven sharing. A way where productivity tracking becomes a tool for empowerment rather than surveillance.</p>
+            <p>This vision drives everything we do at Nwata. We're not just building software—we're building a new paradigm for work identity, one that respects individual privacy while enabling better collaboration and growth for everyone.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Ethical Framework -->
+<section class="ethics-section">
+    <div class="ethics-content">
+        <div class="section-header">
+            <h2 class="section-title">Ethical <span class="gradient-text-orange">Framework</span></h2>
+            <p class="section-subtitle">Our commitment to privacy, consent, and ethical technology</p>
+        </div>
+        <div class="ethics-grid">
+            <div class="ethics-card">
+                <h3>Privacy by Design</h3>
+                <div class="ethics-list">
+                    <div class="ethics-item">
+                        <span class="check-icon">✓</span>
+                        <span>Local data storage by default</span>
+                    </div>
+                    <div class="ethics-item">
+                        <span class="check-icon">✓</span>
+                        <span>End-to-end encryption</span>
+                    </div>
+                    <div class="ethics-item">
+                        <span class="check-icon">✓</span>
+                        <span>No data mining or profiling</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ethics-card">
+                <h3>Consent & Control</h3>
+                <div class="ethics-list">
+                    <div class="ethics-item">
+                        <span class="check-icon">✓</span>
+                        <span>Granular permission controls</span>
+                    </div>
+                    <div class="ethics-item">
+                        <span class="check-icon">✓</span>
+                        <span>Revocable sharing</span>
+                    </div>
+                    <div class="ethics-item">
+                        <span class="check-icon">✓</span>
+                        <span>Transparent data usage</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="faq-section">
+    <div class="faq-content">
+        <div class="section-header">
+            <h2 class="section-title">Frequently Asked <span class="gradient-text-orange">Questions</span></h2>
+            <p class="section-subtitle">Common questions about Nwata's approach and technology</p>
+        </div>
+        <div class="faq-list">
+            <div class="faq-item">
+                <h3>How is employee data protected?</h3>
+                <p>All data is encrypted locally on the employee's device using industry-standard encryption. Data is only shared when the employee explicitly consents and can be revoked at any time. We never have access to unencrypted data.</p>
+            </div>
+            <div class="faq-item">
+                <h3>Can employers see raw activity data?</h3>
+                <p>No. Employers only see aggregated, consented summaries. They never have access to raw activity logs, individual app usage, or personal data. The employee controls exactly what is shared and for how long.</p>
+            </div>
+            <div class="faq-item">
+                <h3>How does auditing work?</h3>
+                <p>Auditing is consent-driven. Employees can choose to share specific time periods or project data for compliance purposes. All sharing is logged and can be audited by the employee, ensuring complete transparency.</p>
+            </div>
+            <div class="faq-item">
+                <h3>Is Nwata GDPR/POPIA compliant?</h3>
+                <p>Yes. Our privacy-first design and consent-driven approach align with GDPR, POPIA, and other privacy regulations. Employees have full control over their data and can export or delete it at any time.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Careers Section -->
+<section class="careers-section">
+    <div class="careers-content">
+        <h2>Join Our <span class="gradient-text-orange">Team</span></h2>
+        <p>We're building the future of work identity. If you're passionate about privacy, ethical technology, and empowering workers, we'd love to hear from you.</p>
+        <div class="careers-card">
+            <div class="careers-grid">
+                <div>
+                    <h3>What We Value</h3>
+                    <div class="careers-list">
+                        <div class="careers-item">
+                            <span class="check-icon" style="font-size: 1rem;">✓</span>
+                            <span>Privacy-first thinking</span>
+                        </div>
+                        <div class="careers-item">
+                            <span class="check-icon" style="font-size: 1rem;">✓</span>
+                            <span>Ethical technology</span>
+                        </div>
+                        <div class="careers-item">
+                            <span class="check-icon" style="font-size: 1rem;">✓</span>
+                            <span>User empowerment</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3>Open Positions</h3>
+                    <div class="careers-list">
+                        <div class="careers-item">
+                            <span class="check-icon" style="font-size: 1rem;">✓</span>
+                            <span>Full-stack developers</span>
+                        </div>
+                        <div class="careers-item">
+                            <span class="check-icon" style="font-size: 1rem;">✓</span>
+                            <span>Privacy engineers</span>
+                        </div>
+                        <div class="careers-item">
+                            <span class="check-icon" style="font-size: 1rem;">✓</span>
+                            <span>Product designers</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <a href="#" class="btn btn-primary btn-lg">Get in Touch</a>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="cta-bg">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 560" preserveAspectRatio="xMidYMid slice" style="width: 100%; height: 100%;">
+            <g fill="none">
+                <path d="M -220.954464989592,218 C -124.95,233.6 67.05,316.2 259.045535010408,296 C 451.05,275.8 547.05,109.8 739.045535010408,117 C 931.05,124.2 1027.05,316.2 1219.045535010408,332 C 1411.05,347.8 1654.85,173.4 1699.045535010408,196 C 1743.24,218.6 1491.81,395.2 1440,445" stroke="rgba(255, 110, 0, 0.6)" stroke-width="2"/>
+                <path d="M -520.3644118170699,175 C -424.36,207 -232.36,318 -40.36441181706994,335 C 151.64,352 247.64,252.8 439.63558818293006,260 C 631.64,267.2 727.64,385 919.6355881829301,371 C 1111.64,357 1295.56,189 1399.63558818293,190 C 1503.71,191 1431.93,338.8 1440,376" stroke="rgba(255, 110, 0, 0.4)" stroke-width="2"/>
+            </g>
+        </svg>
+    </div>
+    <div class="cta-content">
+        <h2 class="cta-title">Ready to <span class="gradient-text-orange">Join</span> the Future?</h2>
+        <p class="cta-text">Learn more about how Nwata can transform your work experience and help you build a better digital identity.</p>
+        <div class="cta-buttons">
+            <a href="{% url 'signup' %}" class="btn btn-primary btn-lg">Start Free Wallet</a>
+            <a href="#" class="btn btn-secondary btn-lg">Contact Us</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

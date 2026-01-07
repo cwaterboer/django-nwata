@@ -37,16 +37,27 @@ def login_view(request):
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data['username']
+            identifier = form.cleaned_data['identifier']
             password = form.cleaned_data['password']
-            user = authenticate(request, username=username, password=password)
-            
+
+            # Try direct username login first
+            user = authenticate(request, username=identifier, password=password)
+
+            if user is None:
+                # Fallback: treat identifier as email
+                from django.contrib.auth.models import User as AuthUser
+                try:
+                    auth_user = AuthUser.objects.get(email__iexact=identifier)
+                    user = authenticate(request, username=auth_user.username, password=password)
+                except AuthUser.DoesNotExist:
+                    user = None
+
             if user is not None:
                 login(request, user)
                 next_url = request.GET.get('next', 'dashboard')
                 return redirect(next_url)
             else:
-                messages.error(request, 'Invalid username or password.')
+                messages.error(request, 'Invalid credentials. Try your email or username.')
     else:
         form = LoginForm()
     
@@ -94,3 +105,15 @@ def device_setup_view(request):
         'api_url': request.build_absolute_uri('/').rstrip('/'),
     }
     return render(request, 'device_setup.html', context)
+
+
+def about_view(request):
+    return render(request, 'about.html')
+
+
+def solutions_view(request):
+    return render(request, 'solutions.html')
+
+
+def use_cases_view(request):
+    return render(request, 'use_cases.html')
