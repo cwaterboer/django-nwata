@@ -208,8 +208,6 @@
         <form method="post">
             {% csrf_token %}
             <div class="form-grid">
-                <div class="section-header">Your Account</div>
-
                 <div class="form-group">
                     <label for="{{ form.first_name.id_for_label }}">First Name</label>
                     {{ form.first_name }}
