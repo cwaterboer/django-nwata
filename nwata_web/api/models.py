@@ -57,6 +57,7 @@ class ActivityLog(models.Model):
     start_time = models.DateTimeField(db_index=True)
     end_time = models.DateTimeField()
     category = models.CharField(max_length=100, null=True, blank=True, db_index=True)
+    context = models.JSONField(null=True, blank=True)  # Context signals from agent
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

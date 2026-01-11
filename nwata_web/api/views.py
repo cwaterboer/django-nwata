@@ -263,6 +263,7 @@ class ActivityIngest(DeviceAuthMixin, APIView):
             start_time=start_time,
             end_time=end_time,
             category=log_data.get("category"),
+            context=log_data.get("context"),  # Context signals from agent
         )
 
         logger.debug(

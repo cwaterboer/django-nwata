@@ -44,6 +44,19 @@ def dashboard(request):
     # Calculate durations for recent activities
     for activity in recent_activities:
         activity.duration_display = round(activity.duration_minutes.total_seconds() / 60, 1)
+        # Parse context if available for display
+        if activity.context:
+            activity.typing_count = activity.context.get('typing_count', 0)
+            activity.scroll_count = activity.context.get('scroll_count', 0)
+            activity.shortcut_count = activity.context.get('shortcut_count', 0)
+            activity.idle_seconds = round(activity.context.get('total_idle_ms', 0) / 1000, 1)
+            activity.typing_rate = activity.context.get('typing_rate_per_min', 0)
+        else:
+            activity.typing_count = 0
+            activity.scroll_count = 0
+            activity.shortcut_count = 0
+            activity.idle_seconds = 0
+            activity.typing_rate = 0
 
     # Today's activities with proper duration calculation - filtered by org
     today_activities = ActivityLog.objects.filter(

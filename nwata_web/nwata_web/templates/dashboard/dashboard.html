@@ -331,8 +331,19 @@
                 <div class="activity-details">
                     <div class="activity-app">{{ activity.app_name }}</div>
                     <div class="activity-window">{{ activity.window_title|truncatechars:60 }}</div>
+                    {% if activity.context %}
+                    <div class="activity-context" style="font-size: 0.85em; color: #999; margin-top: 5px;">
+                        ⌨️ {{ activity.typing_count }} keys
+                        🖱️ {{ activity.scroll_count }} scrolls
+                        {% if activity.shortcut_count > 0 %}⚡ {{ activity.shortcut_count }} shortcuts{% endif %}
+                        {% if activity.idle_seconds > 1 %}⏸️ {{ activity.idle_seconds }}s idle{% endif %}
+                    </div>
+                    {% endif %}
                 </div>
-                <div class="activity-time">{{ activity.created_at|timesince }} ago</div>
+                <div class="activity-time">
+                    <div>{{ activity.created_at|timesince }} ago</div>
+                    <div style="font-size: 0.8em; color: #999;">{{ activity.duration_display }}m</div>
+                </div>
             </div>
             {% empty %}
             <p style="color: #666; padding: 20px;">No recent activity to display. Start tracking to see your activity feed!</p>
