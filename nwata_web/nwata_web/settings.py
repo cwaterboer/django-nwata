@@ -34,16 +34,31 @@ SECRET_KEY = os.environ.get(
 # SECURITY: DEBUG from environment, default to True for local dev
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-# ALLOWED_HOSTS from environment or default
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,django-nwata.onrender.com').split(',')
+# ALLOWED_HOSTS and CSRF from environment with Render auto-detection
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get(
+    'ALLOWED_HOSTS',
+    'localhost,127.0.0.1'
+).split(',') if h.strip()]
 
+# Render auto host injection
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS += [RENDER_EXTERNAL_HOSTNAME, '.onrender.com']
+
+# CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'https://localhost:8000',
     'http://127.0.0.1:8000',
     'https://127.0.0.1:8000',
-    'https://django-nwata.onrender.com',
 ]
+
+# Include production origins from env (comma-separated) and Render
+env_csrf = os.environ.get('CSRF_TRUSTED_ORIGINS')
+if env_csrf:
+    CSRF_TRUSTED_ORIGINS += [o.strip() for o in env_csrf.split(',') if o.strip()]
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
 if prod_origin := os.environ.get('PROD_ORIGIN'):
     CSRF_TRUSTED_ORIGINS.append(prod_origin)
 
@@ -169,3 +184,6 @@ else:
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
+
+# Honor X-Forwarded-Proto (Render proxy HTTPS)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
