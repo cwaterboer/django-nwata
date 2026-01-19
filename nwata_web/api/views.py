@@ -276,38 +276,15 @@ class ActivityIngest(DeviceAuthMixin, APIView):
 class DownloadAgent(APIView):
     """
     API endpoint for downloading the Nwata tracking agent.
-    Serves a single zip containing all platform binaries.
-    The agent detects its own OS at runtime.
+    Redirects to Google Cloud Storage where the agent zip is hosted.
     """
     permission_classes = [AllowAny]
 
     def get(self, request):
-        filename = 'nwata-agent.zip'
-        
-        # Build path to agent zip file
-        agent_dir = os.path.join(settings.BASE_DIR, '..', 'nwata-agent')
-        agent_path = os.path.join(agent_dir, filename)
-
-        # Verify file exists
-        if not os.path.exists(agent_path):
-            logger.warning(f"Agent zip not found: {agent_path}")
-            return Response(
-                {"error": "Agent package not available"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        try:
-            response = FileResponse(
-                open(agent_path, 'rb'),
-                content_type='application/zip',
-                as_attachment=True,
-                filename=filename
-            )
-            logger.info(f"Agent download: {filename} served to {request.META.get('REMOTE_ADDR')}")
-            return response
-        except Exception as e:
-            logger.error(f"Error serving agent download: {str(e)}")
-            return Response(
-                {"error": "Failed to download agent"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # Redirect to cloud-hosted agent zip
+        agent_url = 'https://storage.cloud.google.com/gcf-v2-uploads-606096666000.us-central1.cloudfunctions.appspot.com/nwata-agent.zip'
+        logger.info(f"Agent download redirected to: {agent_url} from {request.META.get('REMOTE_ADDR')}")
+        return Response(
+            {"download_url": agent_url},
+            status=status.HTTP_302_FOUND
+        )

@@ -151,23 +151,38 @@ class LocalDB:
             app_name TEXT,
             start_time TEXT,
             end_time TEXT,
+            context_data TEXT,
             synced INTEGER DEFAULT 0
         )
         """
         )
         self.conn.commit()
+        
+        # Migration: Add context_data column if it doesn't exist
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("PRAGMA table_info(activity_log)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if 'context_data' not in columns:
+                print("[DB] Migrating schema: adding context_data column")
+                self.conn.execute("ALTER TABLE activity_log ADD COLUMN context_data TEXT")
+                self.conn.commit()
+                print("[DB] Migration complete")
+        except Exception as e:
+            print(f"[DB] Migration check failed: {e}")
 
     def insert_log(self, log):
         self.conn.execute(
             """
-        INSERT INTO activity_log (window_title, app_name, start_time, end_time)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO activity_log (window_title, app_name, start_time, end_time, context_data)
+        VALUES (?, ?, ?, ?, ?)
         """,
             (
                 log["window_title"],
                 log["app_name"],
                 log["start_time"],
                 log["end_time"],
+                log.get("context_data"),
             ),
         )
         self.conn.commit()
@@ -177,7 +192,7 @@ class LocalDB:
         cur = self.conn.cursor()
         cur.execute(
             """
-        SELECT id, window_title, app_name, start_time, end_time
+        SELECT id, window_title, app_name, start_time, end_time, context_data
         FROM activity_log
         WHERE synced = 0
         LIMIT ?
@@ -312,12 +327,20 @@ class DjangoSync:
 
         for r in rows:
             ids.append(r[0])
+            context_data = None
+            if r[5]:  # context_data column
+                try:
+                    context_data = json.loads(r[5])
+                except Exception:
+                    context_data = None
+            
             payload.append(
                 {
                     "window_title": r[1],
                     "app_name": r[2],
                     "start_time": r[3],
                     "end_time": r[4],
+                    "context": context_data,
                 }
             )
 
@@ -330,7 +353,7 @@ class DjangoSync:
             )
             if 200 <= res.status_code < 300:
                 self.db.mark_synced(ids)
-                print(f"[SYNC] Uploaded {len(ids)} logs")
+                print(f"[SYNC] Uploaded {len(ids)} logs with context")
             else:
                 print(f"[SYNC ERROR] Status {res.status_code} - {res.text}")
         except Exception as e:
@@ -360,6 +383,106 @@ class DjangoSync:
 
 
 # -----------------------------
+# CONTEXT MONITORING
+# Context signals aggregated per window/log
+# Flushed when window changes
+# 
+# NOTE: Context stats (typing/scroll) require keyboard/mouse listener integration.
+# To enable, install pynput and add:
+#   from pynput import keyboard, mouse
+#   keyboard.Listener(on_press=lambda k: agent.record_typing()).start()
+#   mouse.Listener(on_scroll=lambda x,y,dx,dy: agent.record_scroll()).start()
+# -----------------------------
+class ContextSignals:
+    """Aggregates context signals for a single window log."""
+    def __init__(self):
+        self.typing_count = 0        # Number of typing events
+        self.scroll_count = 0        # Number of scroll events
+        self.shortcut_count = 0      # Number of shortcuts in this window
+        self.total_idle_ms = 0       # Cumulative idle time (ms)
+        self.max_idle_ms = 0         # Longest single idle pause (ms)
+        self.last_activity_time = None  # Timestamp of last typing/scroll
+    
+    def record_typing(self, now):
+        """Record a typing event."""
+        if self.last_activity_time:
+            idle = (now - self.last_activity_time).total_seconds() * 1000
+            self.total_idle_ms += idle
+            self.max_idle_ms = max(self.max_idle_ms, idle)
+        self.typing_count += 1
+        self.last_activity_time = now
+    
+    def record_scroll(self, now):
+        """Record a scroll event."""
+        if self.last_activity_time:
+            idle = (now - self.last_activity_time).total_seconds() * 1000
+            self.total_idle_ms += idle
+            self.max_idle_ms = max(self.max_idle_ms, idle)
+        self.scroll_count += 1
+        self.last_activity_time = now
+    
+    def record_shortcut(self):
+        """Record a shortcut in current window."""
+        self.shortcut_count += 1
+    
+    def finalize(self, window_duration_s):
+        """Finalize context data and compute derived metrics."""
+        # If last activity is still open, add remaining time as potential idle
+        # (simplified: if max_idle is 0, no idle was tracked, so we skip this)
+        context = {
+            "typing_count": self.typing_count,
+            "scroll_count": self.scroll_count,
+            "shortcut_count": self.shortcut_count,
+            "total_idle_ms": int(self.total_idle_ms),
+            "max_idle_ms": int(self.max_idle_ms),
+            "window_duration_s": window_duration_s,
+        }
+        
+        # Derived: typing rate per minute
+        if window_duration_s > 0:
+            context["typing_rate_per_min"] = round(
+                (self.typing_count / (window_duration_s / 60)), 2
+            )
+            context["scroll_rate_per_min"] = round(
+                (self.scroll_count / (window_duration_s / 60)), 2
+            )
+        else:
+            context["typing_rate_per_min"] = 0
+            context["scroll_rate_per_min"] = 0
+        
+        return context
+
+
+class ContextMonitor:
+    """Tracks keyboard, scroll, and other signal events for aggregation per window."""
+    def __init__(self):
+        self.current_signals = ContextSignals()
+        self.lock = threading.Lock()
+    
+    def record_typing(self):
+        """Called when a keyboard/typing event is detected."""
+        with self.lock:
+            self.current_signals.record_typing(datetime.now(timezone.utc))
+    
+    def record_scroll(self):
+        """Called when a scroll event is detected."""
+        with self.lock:
+            self.current_signals.record_scroll(datetime.now(timezone.utc))
+    
+    def record_shortcut(self):
+        """Called when a keyboard shortcut is detected in current window."""
+        with self.lock:
+            self.current_signals.record_shortcut()
+    
+    def finalize_and_reset(self, window_duration_s):
+        """Finalize current window's context, reset for next window."""
+        with self.lock:
+            context = self.current_signals.finalize(window_duration_s)
+            self.current_signals = ContextSignals()
+        return context
+
+
+# -----------------------------
 # TRACKER AGENT
 # -----------------------------
 class TrackerAgent:
@@ -369,6 +492,7 @@ class TrackerAgent:
         self.running = False
         self.last_window = None
         self.last_time = None
+        self.context_monitor = ContextMonitor()
 
     def start(self):
         if self.running:
@@ -384,12 +508,18 @@ class TrackerAgent:
             return
         if self.last_window and self.last_time:
             now_iso = datetime.now(timezone.utc).isoformat()
+            now = datetime.fromisoformat(now_iso.replace('Z', '+00:00')) if 'Z' in now_iso else datetime.fromisoformat(now_iso)
+            last = datetime.fromisoformat(self.last_time.replace('Z', '+00:00')) if 'Z' in self.last_time else datetime.fromisoformat(self.last_time)
+            duration_s = (now - last).total_seconds()
+            context_data = self.context_monitor.finalize_and_reset(duration_s)
+            
             self.db.insert_log(
                 {
                     "window_title": self.last_window,
                     "app_name": self.last_window.split(" - ")[0],
                     "start_time": self.last_time,
                     "end_time": now_iso,
+                    "context_data": json.dumps(context_data),
                 }
             )
         self.running = False
@@ -407,12 +537,20 @@ class TrackerAgent:
                 time.sleep(TRACK_INTERVAL)
                 continue
 
-            if current != self.last_window or (time.time() - last_flush) > ACTIVE_FLUSH_INTERVAL:
+            # Only create new log on actual window change
+            if current != self.last_window:
+                # Window changed: finalize context for previous window
+                now = datetime.fromisoformat(now_iso.replace('Z', '+00:00')) if 'Z' in now_iso else datetime.fromisoformat(now_iso)
+                last = datetime.fromisoformat(self.last_time.replace('Z', '+00:00')) if 'Z' in self.last_time else datetime.fromisoformat(self.last_time)
+                duration_s = (now - last).total_seconds()
+                context_data = self.context_monitor.finalize_and_reset(duration_s)
+                
                 log = {
                     "window_title": self.last_window,
                     "app_name": self.last_window.split(" - ")[0],
                     "start_time": self.last_time,
                     "end_time": now_iso,
+                    "context_data": json.dumps(context_data),
                 }
                 self.db.insert_log(log)
 
@@ -423,9 +561,34 @@ class TrackerAgent:
             time.sleep(TRACK_INTERVAL)
 
     def _sync_loop(self):
+        sync_error_count = 0
         while self.running:
-            self.sync.flush()
+            try:
+                self.sync.flush()
+                sync_error_count = 0  # Reset on success
+            except Exception as e:
+                sync_error_count += 1
+                if sync_error_count <= 3:  # Only log first 3 errors
+                    print(f"[SYNC_LOOP ERROR] {e}")
+                elif sync_error_count == 4:
+                    print("[SYNC_LOOP] Suppressing further sync errors...")
             time.sleep(SYNC_INTERVAL)
+    
+    # Public signal methods (for integration with keyboard/mouse listeners)
+    def record_typing(self):
+        """Called by keyboard listener when typing is detected."""
+        if self.running:
+            self.context_monitor.record_typing()
+    
+    def record_scroll(self):
+        """Called by mouse listener when scrolling is detected."""
+        if self.running:
+            self.context_monitor.record_scroll()
+    
+    def record_shortcut(self):
+        """Called by keyboard listener when a shortcut is detected in current window."""
+        if self.running:
+            self.context_monitor.record_shortcut()
 
 
 # -----------------------------
