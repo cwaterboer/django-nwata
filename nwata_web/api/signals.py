@@ -1,9 +1,11 @@
 """
-Django signals for automatic audit logging
+Django signals for automatic audit logging and data quality monitoring
 """
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
-from .models import UserOrgRole, Organization, OrganizationState, Department, AuditLog
+from django.utils import timezone
+from datetime import datetime, date
+from .models import UserOrgRole, Organization, OrganizationState, Department, AuditLog, ActivityLog, DataQualityMetrics
 
 
 @receiver(post_save, sender=UserOrgRole)
@@ -123,3 +125,108 @@ def log_department_deletion(sender, instance, **kwargs):
             'parent': instance.parent_department.name if instance.parent_department else None,
         },
     )
+
+
+# ========================================
+# DATA QUALITY MONITORING SIGNALS
+# ========================================
+
+@receiver(post_save, sender=ActivityLog)
+def update_data_quality_metrics(sender, instance, created, **kwargs):
+    """
+    Real-time update of data quality metrics when ActivityLog is saved.
+    This provides daily aggregated metrics for monitoring and ML preparation.
+    """
+    from django.db.models import Avg, Count, Q
+    
+    # Only process if quality score was computed
+    if not instance.data_quality_score:
+        return
+    
+    # Get the date for this activity (its end_time date)
+    log_date = instance.end_time.date()
+    org = instance.user.org
+    
+    # Get or create daily metrics for this org
+    metrics, _ = DataQualityMetrics.objects.get_or_create(
+        date=log_date,
+        organization=org
+    )
+    
+    # Recalculate aggregates for the day
+    day_logs = ActivityLog.objects.filter(
+        user__org=org,
+        end_time__date=log_date
+    )
+    
+    total = day_logs.count()
+    valid = day_logs.filter(data_quality_score__gte=0.7).count()
+    with_context = day_logs.filter(context__isnull=False).count()
+    
+    # Aggregate quality scores
+    agg = day_logs.aggregate(
+        avg_quality=Avg('data_quality_score'),
+        min_quality=Avg('data_quality_score'),  # Will refine below
+        max_quality=Avg('data_quality_score'),  # Will refine below
+    )
+    
+    # Get min/max properly
+    quality_values = day_logs.values_list('data_quality_score', flat=True)
+    if quality_values:
+        min_q = min(quality_values)
+        max_q = max(quality_values)
+        avg_q = sum(quality_values) / len(quality_values)
+    else:
+        min_q = max_q = avg_q = 0.0
+    
+    # Aggregate normalized context metrics
+    normalized_values = day_logs.filter(
+        normalized_context__isnull=False
+    ).values_list('normalized_context', flat=True)
+    
+    avg_idle = avg_typing = avg_intensity = 0.0
+    if normalized_values:
+        idle_ratios = []
+        typing_rates = []
+        intensities = []
+        
+        for nc in normalized_values:
+            if nc:
+                idle_ratios.append(nc.get('idle_ratio', 0))
+                typing_rates.append(nc.get('typing_rate_per_min', 0))
+                intensities.append(nc.get('activity_intensity', 0))
+        
+        if idle_ratios:
+            avg_idle = sum(idle_ratios) / len(idle_ratios)
+        if typing_rates:
+            avg_typing = sum(typing_rates) / len(typing_rates)
+        if intensities:
+            avg_intensity = sum(intensities) / len(intensities)
+    
+    # Count schema violations (logs with validation_errors)
+    violations = day_logs.filter(validation_errors__isnull=False).count()
+    
+    # Update metrics
+    metrics.total_logs = total
+    metrics.valid_logs = valid
+    metrics.schema_violations = violations
+    metrics.logs_with_context = with_context
+    metrics.avg_data_quality_score = round(avg_q, 3)
+    metrics.min_data_quality_score = round(min_q, 3)
+    metrics.max_data_quality_score = round(max_q, 3)
+    metrics.avg_idle_ratio = round(avg_idle, 3)
+    metrics.avg_typing_rate_per_min = round(avg_typing, 2)
+    metrics.avg_activity_intensity = round(avg_intensity, 2)
+    
+    # Set alert flags
+    metrics.quality_degradation_flag = avg_q < 0.75
+    violation_rate = (violations / total) if total > 0 else 0
+    metrics.high_violation_rate_flag = violation_rate > 0.10  # 10% threshold
+    
+    metrics.save(update_fields=[
+        'total_logs', 'valid_logs', 'schema_violations', 'logs_with_context',
+        'avg_data_quality_score', 'min_data_quality_score', 'max_data_quality_score',
+        'avg_idle_ratio', 'avg_typing_rate_per_min', 'avg_activity_intensity',
+        'quality_degradation_flag', 'high_violation_rate_flag'
+    ])
+

@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import secrets
 import logging
 import os
-from .models import ActivityLog, Gamification, User, Organization, Device, DeviceEvent, validate_context_data
+from .models import ActivityLog, Gamification, User, Organization, Device, DeviceEvent, DataQualityMetrics, validate_context_data
 
 logger = logging.getLogger(__name__)
 UserModel = get_user_model()
@@ -309,3 +309,198 @@ class DownloadAgent(APIView):
             {"download_url": agent_url},
             status=status.HTTP_302_FOUND
         )
+
+
+# ========================================
+# DATA QUALITY MONITORING ENDPOINTS
+# ========================================
+
+class DataQualityMetricsView(DeviceAuthMixin, APIView):
+    """
+    Get data quality metrics for a specific date or date range.
+    Returns aggregated metrics for ML readiness assessment.
+    """
+
+    def get(self, request):
+        """
+        Query parameters:
+        - date: YYYY-MM-DD (required) - Get metrics for specific date
+        - org_id: Organization ID (optional, defaults to device's org)
+        """
+        try:
+            device = self._get_device_from_request(request)
+            org = device.user.org
+            org_id = request.query_params.get('org_id', org.id)
+            
+            # Verify user has access to this org
+            if str(org_id) != str(org.id):
+                return Response(
+                    {"error": "Unauthorized access to organization"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            date_str = request.query_params.get('date')
+            if not date_str:
+                return Response(
+                    {"error": "date parameter (YYYY-MM-DD) is required"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Parse date
+            try:
+                query_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return Response(
+                    {"error": "Invalid date format. Use YYYY-MM-DD"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Get metrics for date
+            metrics = DataQualityMetrics.objects.filter(
+                date=query_date,
+                organization__id=org_id
+            ).first()
+            
+            if not metrics:
+                # Return empty metrics if none exist yet
+                return Response({
+                    "date": query_date.isoformat(),
+                    "organization_id": org_id,
+                    "message": "No metrics available for this date",
+                    "total_logs": 0,
+                    "valid_logs": 0,
+                    "quality_status": "UNKNOWN"
+                })
+            
+            return Response({
+                "date": metrics.date.isoformat(),
+                "organization_id": metrics.organization.id,
+                "organization_name": metrics.organization.name,
+                "total_logs": metrics.total_logs,
+                "valid_logs": metrics.valid_logs,
+                "schema_violations": metrics.schema_violations,
+                "logs_with_context": metrics.logs_with_context,
+                "avg_data_quality_score": metrics.avg_data_quality_score,
+                "min_data_quality_score": metrics.min_data_quality_score,
+                "max_data_quality_score": metrics.max_data_quality_score,
+                "quality_status": metrics.quality_status,
+                "avg_idle_ratio": metrics.avg_idle_ratio,
+                "avg_typing_rate_per_min": metrics.avg_typing_rate_per_min,
+                "avg_activity_intensity": metrics.avg_activity_intensity,
+                "quality_degradation_flag": metrics.quality_degradation_flag,
+                "high_violation_rate_flag": metrics.high_violation_rate_flag,
+            }, status=status.HTTP_200_OK)
+            
+        except PermissionError as e:
+            logger.warning(f"Unauthorized metrics request: {e}")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except Exception as e:
+            logger.error(f"Error fetching quality metrics: {e}", exc_info=True)
+            return Response(
+                {"error": "Failed to fetch quality metrics"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class DataQualityTrendView(DeviceAuthMixin, APIView):
+    """
+    Get data quality trends over a date range.
+    Useful for monitoring quality degradation over time.
+    """
+
+    def get(self, request):
+        """
+        Query parameters:
+        - start_date: YYYY-MM-DD (required)
+        - end_date: YYYY-MM-DD (required)
+        - org_id: Organization ID (optional, defaults to device's org)
+        """
+        try:
+            device = self._get_device_from_request(request)
+            org = device.user.org
+            org_id = request.query_params.get('org_id', org.id)
+            
+            # Verify user has access to this org
+            if str(org_id) != str(org.id):
+                return Response(
+                    {"error": "Unauthorized access to organization"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            start_date_str = request.query_params.get('start_date')
+            end_date_str = request.query_params.get('end_date')
+            
+            if not start_date_str or not end_date_str:
+                return Response(
+                    {"error": "start_date and end_date parameters (YYYY-MM-DD) are required"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Parse dates
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return Response(
+                    {"error": "Invalid date format. Use YYYY-MM-DD"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if start_date > end_date:
+                return Response(
+                    {"error": "start_date must be before end_date"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Get metrics for date range
+            metrics_list = DataQualityMetrics.objects.filter(
+                date__gte=start_date,
+                date__lte=end_date,
+                organization__id=org_id
+            ).order_by('date')
+            
+            trends = []
+            for m in metrics_list:
+                trends.append({
+                    "date": m.date.isoformat(),
+                    "total_logs": m.total_logs,
+                    "valid_logs": m.valid_logs,
+                    "avg_data_quality_score": m.avg_data_quality_score,
+                    "quality_status": m.quality_status,
+                    "schema_violations": m.schema_violations,
+                    "quality_degradation_flag": m.quality_degradation_flag,
+                })
+            
+            # Calculate overall trend
+            if trends:
+                first_score = trends[0]['avg_data_quality_score']
+                last_score = trends[-1]['avg_data_quality_score']
+                trend_direction = "improving" if last_score > first_score else "degrading" if last_score < first_score else "stable"
+            else:
+                trend_direction = "unknown"
+            
+            return Response({
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "organization_id": org_id,
+                "trend_direction": trend_direction,
+                "days_with_data": len(trends),
+                "metrics": trends
+            }, status=status.HTTP_200_OK)
+            
+        except PermissionError as e:
+            logger.warning(f"Unauthorized trend request: {e}")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except Exception as e:
+            logger.error(f"Error fetching quality trends: {e}", exc_info=True)
+            return Response(
+                {"error": "Failed to fetch quality trends"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+

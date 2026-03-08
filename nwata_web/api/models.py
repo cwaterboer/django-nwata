@@ -246,6 +246,57 @@ class DeviceEvent(models.Model):
         return f"{self.device.name} - {self.event} ({self.created_at})"
 
 
+class DataQualityMetrics(models.Model):
+    """Real-time data quality metrics aggregated daily per organization"""
+    date = models.DateField(db_index=True)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='quality_metrics')
+    total_logs = models.IntegerField(default=0)  # Total logs for the day
+    valid_logs = models.IntegerField(default=0)  # Logs with quality_score >= 0.7
+    schema_violations = models.IntegerField(default=0)  # Logs that failed schema validation
+    avg_data_quality_score = models.FloatField(default=0.0)  # Average quality score
+    min_data_quality_score = models.FloatField(default=0.0)
+    max_data_quality_score = models.FloatField(default=1.0)
+    
+    # Distribution metrics for ML analysis
+    logs_with_context = models.IntegerField(default=0)  # Logs with non-null context
+    avg_idle_ratio = models.FloatField(default=0.0)
+    avg_typing_rate_per_min = models.FloatField(default=0.0)
+    avg_activity_intensity = models.FloatField(default=0.0)
+    
+    # Alert flags
+    quality_degradation_flag = models.BooleanField(default=False)  # True if avg_quality < 0.75
+    high_violation_rate_flag = models.BooleanField(default=False)  # True if violations > 10% of logs
+    
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [['date', 'organization']]
+        indexes = [
+            models.Index(fields=['date', 'organization']),
+            models.Index(fields=['organization', 'date']),
+            models.Index(fields=['updated_at']),
+        ]
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.organization.name} - {self.date} (Quality: {self.avg_data_quality_score:.2f})"
+    
+    @property
+    def quality_status(self):
+        """Human-readable quality status"""
+        if self.quality_degradation_flag:
+            return "DEGRADED"
+        elif self.avg_data_quality_score >= 0.9:
+            return "EXCELLENT"
+        elif self.avg_data_quality_score >= 0.8:
+            return "GOOD"
+        elif self.avg_data_quality_score >= 0.7:
+            return "FAIR"
+        else:
+            return "POOR"
+
+
 # ========================================
 # RBAC & PERMISSIONS MODELS
 # ========================================
