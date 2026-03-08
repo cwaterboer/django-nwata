@@ -37,6 +37,22 @@ SYNC_BATCH_SIZE = 20
 TRACK_INTERVAL = 1  # seconds
 SYNC_INTERVAL = 10  # flush every 10s
 ACTIVE_FLUSH_INTERVAL = 20  # flush even if unchanged
+MIN_DURATION_S = 0.001  # Minimum 1ms duration to avoid division by zero
+MAX_DURATION_S = 28800  # 8 hours max per activity window
+MAX_TYPING_RATE = 1000  # Max typing events per minute (realistic bound)
+MAX_SCROLL_RATE = 500  # Max scroll events per minute (realistic bound)
+
+# Context schema validation bounds
+CONTEXT_CONSTRAINTS = {
+    'typing_count': {'min': 0, 'max': 10000},
+    'scroll_count': {'min': 0, 'max': 5000},
+    'shortcut_count': {'min': 0, 'max': 1000},
+    'total_idle_ms': {'min': 0, 'max': None},
+    'max_idle_ms': {'min': 0, 'max': None},
+    'window_duration_s': {'min': MIN_DURATION_S, 'max': MAX_DURATION_S},
+    'typing_rate_per_min': {'min': 0, 'max': MAX_TYPING_RATE},
+    'scroll_rate_per_min': {'min': 0, 'max': MAX_SCROLL_RATE},
+}
 
 # -----------------------------
 # UTIL: RESOURCE PATH FOR BUNDLED APPS
@@ -301,12 +317,59 @@ class DeviceAuth:
 
 
 # -----------------------------
+# CONTEXT DATA VALIDATION
+# -----------------------------
+def validate_context_data(context_data):
+    """Validate context data against schema constraints.
+    
+    Args:
+        context_data: Dictionary with context metrics or None
+        
+    Returns:
+        Tuple (is_valid, error_message) where is_valid is bool, error_message is str or None
+    """
+    if context_data is None:
+        # None is acceptable (no tracking occurred)
+        return True, None
+    
+    if not isinstance(context_data, dict):
+        return False, "context_data must be a dictionary"
+    
+    # Check each constraint
+    for field, constraint in CONTEXT_CONSTRAINTS.items():
+        if field not in context_data:
+            # Some fields may be optional
+            if field in ['typing_count', 'scroll_count', 'shortcut_count', 'window_duration_s']:
+                return False, f"missing required field: {field}"
+            continue
+        
+        value = context_data[field]
+        
+        # Type check: should be numeric
+        if not isinstance(value, (int, float)):
+            return False, f"{field} must be numeric, got {type(value).__name__}"
+        
+        # Min constraint
+        min_val = constraint.get('min')
+        if min_val is not None and value < min_val:
+            return False, f"{field} value {value} below minimum {min_val}"
+        
+        # Max constraint
+        max_val = constraint.get('max')
+        if max_val is not None and value > max_val:
+            return False, f"{field} value {value} exceeds maximum {max_val}"
+    
+    return True, None
+
+
+# -----------------------------
 # SYNC ENGINE
 # -----------------------------
 class DjangoSync:
     def __init__(self, db: LocalDB, auth: DeviceAuth):
         self.db = db
         self.auth = auth
+        self.validation_errors_count = 0  # Track validation failures for alerts
 
     def _headers(self):
         return {"Authorization": f"Bearer {self.auth.token}"}
@@ -324,16 +387,26 @@ class DjangoSync:
 
         payload = []
         ids = []
+        skipped = 0
 
         for r in rows:
-            ids.append(r[0])
             context_data = None
             if r[5]:  # context_data column
                 try:
                     context_data = json.loads(r[5])
-                except Exception:
+                except Exception as e:
+                    print(f"[SYNC WARN] Invalid JSON in context_data: {e}")
                     context_data = None
             
+            # Validate context data before adding to payload
+            is_valid, error_msg = validate_context_data(context_data)
+            if not is_valid:
+                self.validation_errors_count += 1
+                print(f"[SYNC VALIDATION FAILED] {error_msg} - Log ID {r[0]} skipped")
+                skipped += 1
+                continue
+            
+            ids.append(r[0])
             payload.append(
                 {
                     "window_title": r[1],
@@ -344,6 +417,11 @@ class DjangoSync:
                 }
             )
 
+        if not payload:
+            if skipped > 0:
+                print(f"[SYNC] No valid logs to sync ({skipped} skipped due to validation)")
+            return
+
         try:
             res = requests.post(
                 f"{self.auth.api_url}/api/activity/",
@@ -353,7 +431,7 @@ class DjangoSync:
             )
             if 200 <= res.status_code < 300:
                 self.db.mark_synced(ids)
-                print(f"[SYNC] Uploaded {len(ids)} logs with context")
+                print(f"[SYNC] Uploaded {len(ids)} logs with context ({skipped} validation skipped)")
             else:
                 print(f"[SYNC ERROR] Status {res.status_code} - {res.text}")
         except Exception as e:
@@ -426,29 +504,45 @@ class ContextSignals:
         self.shortcut_count += 1
     
     def finalize(self, window_duration_s):
-        """Finalize context data and compute derived metrics."""
-        # If last activity is still open, add remaining time as potential idle
-        # (simplified: if max_idle is 0, no idle was tracked, so we skip this)
+        """Finalize context data with validation and ML-ready features.
+        
+        Ensures all values are non-negative, within realistic bounds,
+        and computes derived metrics for ML models.
+        """
+        # Safety: ensure duration is within reasonable bounds
+        safe_duration_s = max(MIN_DURATION_S, min(window_duration_s, MAX_DURATION_S))
+        
+        # Context with bounds checking (ensure non-negative)
         context = {
-            "typing_count": self.typing_count,
-            "scroll_count": self.scroll_count,
-            "shortcut_count": self.shortcut_count,
-            "total_idle_ms": int(self.total_idle_ms),
-            "max_idle_ms": int(self.max_idle_ms),
-            "window_duration_s": window_duration_s,
+            "typing_count": max(0, self.typing_count),
+            "scroll_count": max(0, self.scroll_count),
+            "shortcut_count": max(0, self.shortcut_count),
+            "total_idle_ms": max(0, int(self.total_idle_ms)),
+            "max_idle_ms": max(0, int(self.max_idle_ms)),
+            "window_duration_s": safe_duration_s,
         }
         
-        # Derived: typing rate per minute
-        if window_duration_s > 0:
-            context["typing_rate_per_min"] = round(
-                (self.typing_count / (window_duration_s / 60)), 2
-            )
-            context["scroll_rate_per_min"] = round(
-                (self.scroll_count / (window_duration_s / 60)), 2
-            )
-        else:
-            context["typing_rate_per_min"] = 0
-            context["scroll_rate_per_min"] = 0
+        # Derived: typing and scroll rates per minute (capped at realistic maximums)
+        duration_min = max(0.001, safe_duration_s / 60)  # Avoid division by zero
+        context["typing_rate_per_min"] = round(
+            min(self.typing_count / duration_min, MAX_TYPING_RATE), 2
+        )
+        context["scroll_rate_per_min"] = round(
+            min(self.scroll_count / duration_min, MAX_SCROLL_RATE), 2
+        )
+        
+        # ML-ready features for backend normalization
+        context["activity_events_total"] = (
+            context["typing_count"] 
+            + context["scroll_count"] 
+            + context["shortcut_count"]
+        )
+        context["idle_ratio"] = min(
+            context["total_idle_ms"] / max(safe_duration_s * 1000, 1), 1.0
+        )
+        context["peak_idle_ratio"] = min(
+            context["max_idle_ms"] / max(safe_duration_s * 1000, 1), 1.0
+        )
         
         return context
 
@@ -526,53 +620,66 @@ class TrackerAgent:
         self.sync.signal("stop")
 
     def _loop(self):
+        """Main tracking loop: monitors active window and flushes on change or timeout."""
         last_flush = time.time()
         while self.running:
-            current = get_active_window()
-            now_iso = datetime.now(timezone.utc).isoformat()
-
-            if self.last_window is None:
-                self.last_window = current
-                self.last_time = now_iso
-                time.sleep(TRACK_INTERVAL)
-                continue
-
-            # Only create new log on actual window change
-            if current != self.last_window:
-                # Window changed: finalize context for previous window
-                now = datetime.fromisoformat(now_iso.replace('Z', '+00:00')) if 'Z' in now_iso else datetime.fromisoformat(now_iso)
-                last = datetime.fromisoformat(self.last_time.replace('Z', '+00:00')) if 'Z' in self.last_time else datetime.fromisoformat(self.last_time)
-                duration_s = (now - last).total_seconds()
-                context_data = self.context_monitor.finalize_and_reset(duration_s)
+            now = datetime.now(timezone.utc)
+            window = get_active_window()
+            
+            # Check if window changed or timeout reached
+            if window != self.last_window or (time.time() - last_flush > ACTIVE_FLUSH_INTERVAL):
+                # Flush previous window
+                if self.last_window and self.last_time:
+                    now_iso = now.isoformat()
+                    last_iso = self.last_time
+                    
+                    try:
+                        now_dt = datetime.fromisoformat(now_iso.replace('Z', '+00:00')) if 'Z' in now_iso else datetime.fromisoformat(now_iso)
+                        last_dt = datetime.fromisoformat(last_iso.replace('Z', '+00:00')) if 'Z' in last_iso else datetime.fromisoformat(last_iso)
+                        duration_s = (now_dt - last_dt).total_seconds()
+                        
+                        # Ensure duration is safe (between MIN and MAX)
+                        duration_s = max(MIN_DURATION_S, min(duration_s, MAX_DURATION_S))
+                        
+                        context_data = self.context_monitor.finalize_and_reset(duration_s)
+                        
+                        self.db.insert_log({
+                            "window_title": self.last_window,
+                            "app_name": self.last_window.split(" - ")[0] if " - " in self.last_window else self.last_window,
+                            "start_time": last_iso,
+                            "end_time": now_iso,
+                            "context_data": json.dumps(context_data),
+                        })
+                    except Exception as e:
+                        print(f"[AGENT ERROR] Failed to flush window {self.last_window}: {e}")
                 
-                log = {
-                    "window_title": self.last_window,
-                    "app_name": self.last_window.split(" - ")[0],
-                    "start_time": self.last_time,
-                    "end_time": now_iso,
-                    "context_data": json.dumps(context_data),
-                }
-                self.db.insert_log(log)
-
-                self.last_window = current
-                self.last_time = now_iso
+                self.last_window = window
+                self.last_time = now.isoformat()
                 last_flush = time.time()
-
+            
             time.sleep(TRACK_INTERVAL)
 
+
     def _sync_loop(self):
+        """Sync loop: periodically flush logs to backend with error handling."""
         sync_error_count = 0
         while self.running:
             try:
                 self.sync.flush()
-                sync_error_count = 0  # Reset on success
+                sync_error_count = 0  # Reset on successful sync
             except Exception as e:
                 sync_error_count += 1
-                if sync_error_count <= 3:  # Only log first 3 errors
-                    print(f"[SYNC_LOOP ERROR] {e}")
-                elif sync_error_count == 4:
-                    print("[SYNC_LOOP] Suppressing further sync errors...")
+                print(f"[SYNC WARN] Sync failed (attempt {sync_error_count}): {e}")
+                
+                # Alert user if too many validation errors
+                if self.sync.validation_errors_count > 5:
+                    print(f"[SYNC ALERT] {self.sync.validation_errors_count} logs failed validation. Check data quality.")
+                
+                if sync_error_count > 10:
+                    print("[SYNC CRITICAL] Too many sync failures. Check connection or credentials.")
+            
             time.sleep(SYNC_INTERVAL)
+
     
     # Public signal methods (for integration with keyboard/mouse listeners)
     def record_typing(self):

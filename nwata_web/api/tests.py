@@ -99,6 +99,117 @@ class ActivityIngestAPITest(TestCase):
         self.assertEqual(response.data['processed'], 2)
         self.assertEqual(ActivityLog.objects.count(), 2)
 
+
+class ContextValidationTest(TestCase):
+    def test_valid_context_data(self):
+        """Test that valid context data passes validation"""
+        from .models import validate_context_schema
+        
+        valid_context = {
+            "typing_count": 100,
+            "scroll_count": 50,
+            "shortcut_count": 5,
+            "total_idle_ms": 30000,
+            "max_idle_ms": 10000,
+            "window_duration_s": 600.0,
+            "typing_rate_per_min": 10.0,
+            "scroll_rate_per_min": 5.0
+        }
+        
+        # Should not raise ValidationError
+        validate_context_schema(valid_context)
+    
+    def test_invalid_context_data(self):
+        """Test that invalid context data fails validation"""
+        from .models import validate_context_schema
+        from jsonschema import ValidationError
+        
+        invalid_context = {
+            "typing_count": -1,  # Invalid negative value
+            "scroll_count": 50,
+            "shortcut_count": 5,
+            "total_idle_ms": 30000,
+            "max_idle_ms": 10000,
+            "window_duration_s": 600.0,
+        }
+        
+        with self.assertRaises(ValidationError):
+            validate_context_schema(invalid_context)
+
+    def test_context_business_rules(self):
+        """Test business rule validation"""
+        from .models import validate_context_data
+        
+        # Test unrealistic typing rate
+        invalid_context = {
+            "typing_count": 100,
+            "scroll_count": 50,
+            "shortcut_count": 5,
+            "total_idle_ms": 30000,
+            "max_idle_ms": 10000,
+            "window_duration_s": 600.0,
+            "typing_rate_per_min": 1500,  # Too high
+            "scroll_rate_per_min": 5.0
+        }
+        
+        is_valid, errors, warnings = validate_context_data(invalid_context)
+        self.assertFalse(is_valid)
+        self.assertIn("typing_rate_per_min exceeds realistic bounds", errors[0])
+
+
+class DataQualityTest(TestCase):
+    def setUp(self):
+        self.org = Organization.objects.create(name="Test Org", subdomain="test")
+        self.user = User.objects.create(email="test@example.com", org=self.org)
+    
+    def test_quality_score_calculation(self):
+        """Test data quality score computation"""
+        from .models import compute_data_quality_score
+        
+        start_time = timezone.now()
+        end_time = start_time + timedelta(minutes=30)
+        
+        # High quality log with context
+        context = {
+            "typing_count": 500,
+            "scroll_count": 100,
+            "shortcut_count": 10,
+            "total_idle_ms": 60000,
+            "max_idle_ms": 10000,
+            "window_duration_s": 1800.0,
+            "typing_rate_per_min": 16.67,
+            "scroll_rate_per_min": 3.33
+        }
+        
+        score = compute_data_quality_score(context, start_time, end_time)
+        self.assertGreaterEqual(score, 0.9)
+    
+    def test_activity_log_quality_computation(self):
+        """Test that ActivityLog automatically computes quality scores"""
+        start_time = timezone.now()
+        end_time = start_time + timedelta(minutes=30)
+        
+        log = ActivityLog.objects.create(
+            user=self.user,
+            app_name="VS Code",
+            start_time=start_time,
+            end_time=end_time,
+            context={
+                "typing_count": 500,
+                "scroll_count": 100,
+                "shortcut_count": 10,
+                "total_idle_ms": 60000,
+                "max_idle_ms": 10000,
+                "window_duration_s": 1800.0,
+                "typing_rate_per_min": 16.67,
+                "scroll_rate_per_min": 3.33
+            }
+        )
+        
+        self.assertIsNotNone(log.data_quality_score)
+        self.assertIsNotNone(log.normalized_context)
+        self.assertGreaterEqual(log.data_quality_score, 0.8)
+
     def test_missing_required_fields(self):
         data = {"app_name": "Chrome"}  # Missing start_time and end_time
         

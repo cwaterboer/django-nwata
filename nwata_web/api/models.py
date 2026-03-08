@@ -3,6 +3,109 @@ from django.contrib.auth.models import User as AuthUser
 from django.utils import timezone
 import hashlib
 import secrets
+import jsonschema
+from jsonschema import validate, ValidationError
+
+# ========================================
+# CONTEXT DATA VALIDATION FUNCTIONS
+# ========================================
+
+CONTEXT_SCHEMA_V1 = {
+    "type": "object",
+    "properties": {
+        "typing_count": {"type": "integer", "minimum": 0, "maximum": 10000},
+        "scroll_count": {"type": "integer", "minimum": 0, "maximum": 5000},
+        "shortcut_count": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "total_idle_ms": {"type": "integer", "minimum": 0},
+        "max_idle_ms": {"type": "integer", "minimum": 0},
+        "window_duration_s": {"type": "number", "minimum": 0.001, "maximum": 28800},
+        "typing_rate_per_min": {"type": "number", "minimum": 0, "maximum": 1000},
+        "scroll_rate_per_min": {"type": "number", "minimum": 0, "maximum": 500}
+    },
+    "required": ["typing_count", "scroll_count", "shortcut_count", "total_idle_ms", "max_idle_ms", "window_duration_s"]
+}
+
+def validate_context_schema(value):
+    """Validate context data against schema"""
+    if value is None:
+        return
+    validate(instance=value, schema=CONTEXT_SCHEMA_V1)
+
+def validate_context_data(context_data):
+    """Enhanced context validation with business rules"""
+    if not context_data:
+        return True, None, None
+    
+    try:
+        validate_context_schema(context_data)
+    except ValidationError as e:
+        return False, [f"Schema validation failed: {e.message}"], None
+    
+    errors, warnings = [], []
+    
+    # Business rule checks
+    duration = context_data.get('window_duration_s', 0)
+    if duration <= 0:
+        errors.append("window_duration_s must be positive")
+    
+    typing_rate = context_data.get('typing_rate_per_min', 0)
+    if typing_rate > 1000:
+        errors.append("typing_rate_per_min exceeds realistic bounds")
+    elif typing_rate > 200:
+        warnings.append("typing_rate_per_min unusually high")
+    
+    idle_ratio = context_data.get('total_idle_ms', 0) / max(duration * 1000, 1)
+    if idle_ratio > 0.95:
+        warnings.append("idle_ratio > 95% - mostly inactive window")
+    
+    return len(errors) == 0, errors, warnings
+
+def compute_data_quality_score(context, start_time, end_time):
+    """Compute data quality score for activity log (0-1 scale)"""
+    score = 1.0
+    
+    # Context completeness
+    if not context:
+        score *= 0.7
+    
+    # Duration validity
+    duration = (end_time - start_time).total_seconds()
+    if duration <= 0 or duration > 28800:  # 8 hours max, positive duration
+        score *= 0.5
+    
+    # Context consistency
+    if context:
+        if context.get('window_duration_s', 0) != duration:
+            score *= 0.9  # Minor penalty for duration mismatch
+        
+        # Outlier detection
+        typing_rate = context.get('typing_rate_per_min', 0)
+        if typing_rate > 1000:  # Impossible typing speed
+            score *= 0.8
+    
+    return score
+
+def normalize_context_for_ml(context_data):
+    """Transform context into ML-ready normalized features"""
+    if not context_data:
+        return {
+            'has_context': False,
+            'typing_count_norm': 0,
+            'scroll_count_norm': 0,
+            'idle_ratio': 0,
+            'activity_intensity': 0
+        }
+    
+    duration_s = context_data['window_duration_s']
+    
+    return {
+        'has_context': True,
+        'typing_count_norm': min(context_data['typing_count'] / max(duration_s, 1), 10),
+        'scroll_count_norm': min(context_data['scroll_count'] / max(duration_s / 60, 1), 100),
+        'idle_ratio': min(context_data['total_idle_ms'] / max(duration_s * 1000, 1), 1.0),
+        'activity_intensity': (context_data['typing_count'] + context_data['scroll_count']) / max(duration_s, 1),
+        'peak_idle_ratio': min(context_data['max_idle_ms'] / max(duration_s * 1000, 1), 1.0)
+    }
 
 class Organization(models.Model):
     ORG_TYPE_CHOICES = [
@@ -57,7 +160,11 @@ class ActivityLog(models.Model):
     start_time = models.DateTimeField(db_index=True)
     end_time = models.DateTimeField()
     category = models.CharField(max_length=100, null=True, blank=True, db_index=True)
-    context = models.JSONField(null=True, blank=True)  # Context signals from agent
+    context = models.JSONField(null=True, blank=True, validators=[validate_context_schema])  # Context signals from agent
+    context_schema_version = models.CharField(max_length=10, default='1.0')
+    data_quality_score = models.FloatField(null=True, blank=True)  # 0-1 scale
+    validation_errors = models.JSONField(null=True, blank=True)
+    normalized_context = models.JSONField(null=True, blank=True)  # ML-ready features
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
@@ -65,6 +172,7 @@ class ActivityLog(models.Model):
             models.Index(fields=['user', 'created_at']),
             models.Index(fields=['app_name', 'created_at']),
             models.Index(fields=['start_time', 'end_time']),
+            models.Index(fields=['data_quality_score']),
         ]
         ordering = ['-created_at']
 
@@ -75,6 +183,16 @@ class ActivityLog(models.Model):
     def duration(self):
         """Calculate duration in seconds"""
         return (self.end_time - self.start_time).total_seconds()
+
+    def save(self, *args, **kwargs):
+        # Compute quality metrics before saving
+        if self.context:
+            self.data_quality_score = compute_data_quality_score(
+                self.context, self.start_time, self.end_time
+            )
+            self.normalized_context = normalize_context_for_ml(self.context)
+        
+        super().save(*args, **kwargs)
 
 class Gamification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='gamification_records')

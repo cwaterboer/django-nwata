@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import secrets
 import logging
 import os
-from .models import ActivityLog, Gamification, User, Organization, Device, DeviceEvent
+from .models import ActivityLog, Gamification, User, Organization, Device, DeviceEvent, validate_context_data
 
 logger = logging.getLogger(__name__)
 UserModel = get_user_model()
@@ -248,8 +248,24 @@ class ActivityIngest(DeviceAuthMixin, APIView):
             
             if end < start:
                 raise ValueError("end_time must be after start_time")
+                
+            # Check for reasonable duration
+            duration = (end - start).total_seconds()
+            if duration > 28800:  # 8 hours
+                raise ValueError("Activity duration exceeds 8 hours")
+                
         except (ValueError, AttributeError) as e:
             raise ValueError(f"Invalid timestamp format: {str(e)}")
+        
+        # Validate context data
+        context = log_data.get("context")
+        if context is not None:
+            is_valid, errors, warnings = validate_context_data(context)
+            if not is_valid:
+                raise ValueError(f"Context validation failed: {', '.join(errors)}")
+            
+            # Store validation results for logging
+            log_data['_context_warnings'] = warnings
 
     def _process_single_log(self, log_data, user):
         """Process and create a single activity log entry for a specific user"""
@@ -265,10 +281,15 @@ class ActivityIngest(DeviceAuthMixin, APIView):
             category=log_data.get("category"),
             context=log_data.get("context"),  # Context signals from agent
         )
-
+        
+        # Log warnings if any
+        warnings = log_data.get('_context_warnings', [])
+        if warnings:
+            logger.warning(f"Context warnings for log {activity.id}: {warnings}")
+        
         logger.debug(
             f"Created ActivityLog {activity.id}: {activity.app_name} "
-            f"({activity.duration:.1f}s)"
+            f"({activity.duration:.1f}s, quality: {activity.data_quality_score:.2f})"
         )
         return activity
 
