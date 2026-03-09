@@ -220,6 +220,7 @@ def update_data_quality_metrics(sender, instance, created, **kwargs):
                         avg_intensity = sum(intensities) / len(intensities)
             except Exception as e:
                 # Continue with zeros
+                pass
 
             # Count schema violations (logs with validation_errors)
             violations = day_logs.filter(validation_errors__isnull=False).count()
