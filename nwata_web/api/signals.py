@@ -135,98 +135,131 @@ def log_department_deletion(sender, instance, **kwargs):
 def update_data_quality_metrics(sender, instance, created, **kwargs):
     """
     Real-time update of data quality metrics when ActivityLog is saved.
-    This provides daily aggregated metrics for monitoring and ML preparation.
+    Optimized to minimize database queries and handle connection issues gracefully.
     """
-    from django.db.models import Avg, Count, Q
+    from django.db.models import Avg, Count, Q, Min, Max
+    from django.db import transaction, connection
+    from django.db import OperationalError
     
-    # Only process if quality score was computed
-    if not instance.data_quality_score:
+    # Only process if quality score was computed and we have an org
+    if not instance.data_quality_score or not hasattr(instance, 'user') or not instance.user.org:
         return
-    
+
     # Get the date for this activity (its end_time date)
     log_date = instance.end_time.date()
     org = instance.user.org
-    
-    # Get or create daily metrics for this org
-    metrics, _ = DataQualityMetrics.objects.get_or_create(
-        date=log_date,
-        organization=org
-    )
-    
-    # Recalculate aggregates for the day
-    day_logs = ActivityLog.objects.filter(
-        user__org=org,
-        end_time__date=log_date
-    )
-    
-    total = day_logs.count()
-    valid = day_logs.filter(data_quality_score__gte=0.7).count()
-    with_context = day_logs.filter(context__isnull=False).count()
-    
-    # Aggregate quality scores
-    agg = day_logs.aggregate(
-        avg_quality=Avg('data_quality_score'),
-        min_quality=Avg('data_quality_score'),  # Will refine below
-        max_quality=Avg('data_quality_score'),  # Will refine below
-    )
-    
-    # Get min/max properly
-    quality_values = day_logs.values_list('data_quality_score', flat=True)
-    if quality_values:
-        min_q = min(quality_values)
-        max_q = max(quality_values)
-        avg_q = sum(quality_values) / len(quality_values)
-    else:
-        min_q = max_q = avg_q = 0.0
-    
-    # Aggregate normalized context metrics
-    normalized_values = day_logs.filter(
-        normalized_context__isnull=False
-    ).values_list('normalized_context', flat=True)
-    
-    avg_idle = avg_typing = avg_intensity = 0.0
-    if normalized_values:
-        idle_ratios = []
-        typing_rates = []
-        intensities = []
-        
-        for nc in normalized_values:
-            if nc:
-                idle_ratios.append(nc.get('idle_ratio', 0))
-                typing_rates.append(nc.get('typing_rate_per_min', 0))
-                intensities.append(nc.get('activity_intensity', 0))
-        
-        if idle_ratios:
-            avg_idle = sum(idle_ratios) / len(idle_ratios)
-        if typing_rates:
-            avg_typing = sum(typing_rates) / len(typing_rates)
-        if intensities:
-            avg_intensity = sum(intensities) / len(intensities)
-    
-    # Count schema violations (logs with validation_errors)
-    violations = day_logs.filter(validation_errors__isnull=False).count()
-    
-    # Update metrics
-    metrics.total_logs = total
-    metrics.valid_logs = valid
-    metrics.schema_violations = violations
-    metrics.logs_with_context = with_context
-    metrics.avg_data_quality_score = round(avg_q, 3)
-    metrics.min_data_quality_score = round(min_q, 3)
-    metrics.max_data_quality_score = round(max_q, 3)
-    metrics.avg_idle_ratio = round(avg_idle, 3)
-    metrics.avg_typing_rate_per_min = round(avg_typing, 2)
-    metrics.avg_activity_intensity = round(avg_intensity, 2)
-    
-    # Set alert flags
-    metrics.quality_degradation_flag = avg_q < 0.75
-    violation_rate = (violations / total) if total > 0 else 0
-    metrics.high_violation_rate_flag = violation_rate > 0.10  # 10% threshold
-    
-    metrics.save(update_fields=[
-        'total_logs', 'valid_logs', 'schema_violations', 'logs_with_context',
-        'avg_data_quality_score', 'min_data_quality_score', 'max_data_quality_score',
-        'avg_idle_ratio', 'avg_typing_rate_per_min', 'avg_activity_intensity',
-        'quality_degradation_flag', 'high_violation_rate_flag'
-    ])
+
+    try:
+        # Use atomic transaction to ensure consistency
+        with transaction.atomic():
+            # Get or create daily metrics for this org (efficient single query)
+            metrics, created = DataQualityMetrics.objects.get_or_create(
+                date=log_date,
+                organization=org,
+                defaults={
+                    'total_logs': 0,
+                    'valid_logs': 0,
+                    'schema_violations': 0,
+                    'avg_data_quality_score': 0.0,
+                    'min_data_quality_score': 0.0,
+                    'max_data_quality_score': 1.0,
+                    'logs_with_context': 0,
+                    'avg_idle_ratio': 0.0,
+                    'avg_typing_rate_per_min': 0.0,
+                    'avg_activity_intensity': 0.0,
+                }
+            )
+
+            # Single optimized query to get all aggregates
+            day_logs = ActivityLog.objects.filter(
+                user__org=org,
+                end_time__date=log_date
+            )
+
+            # Use database aggregation for efficiency
+            aggregates = day_logs.aggregate(
+                total=Count('id'),
+                valid=Count('id', filter=Q(data_quality_score__gte=0.7)),
+                with_context=Count('id', filter=Q(context__isnull=False)),
+                avg_quality=Avg('data_quality_score'),
+                min_quality=Min('data_quality_score'),
+                max_quality=Max('data_quality_score'),
+            )
+
+            # Extract values with defaults
+            total = aggregates.get('total', 0)
+            valid = aggregates.get('valid', 0)
+            with_context = aggregates.get('with_context', 0)
+            avg_q = aggregates.get('avg_quality', 0.0) or 0.0
+            min_q = aggregates.get('min_quality', 0.0) or 0.0
+            max_q = aggregates.get('max_quality', 1.0) or 1.0
+
+            # For JSON field aggregation, use Python processing to avoid database-specific issues
+            avg_idle = avg_typing = avg_intensity = 0.0
+
+            # Limit processing to avoid memory issues - only process last 100 logs
+            try:
+                recent_normalized = list(day_logs.filter(normalized_context__isnull=False).order_by('-id')[:100].values_list('normalized_context', flat=True))
+
+                if recent_normalized:
+                    idle_ratios = []
+                    typing_rates = []
+                    intensities = []
+
+                    for nc in recent_normalized:
+                        if isinstance(nc, dict):
+                            idle_ratios.append(nc.get('idle_ratio', 0))
+                            typing_rates.append(nc.get('typing_rate_per_min', 0))
+                            intensities.append(nc.get('activity_intensity', 0))
+
+                    if idle_ratios:
+                        avg_idle = sum(idle_ratios) / len(idle_ratios)
+                    if typing_rates:
+                        avg_typing = sum(typing_rates) / len(typing_rates)
+                    if intensities:
+                        avg_intensity = sum(intensities) / len(intensities)
+            except Exception as e:
+                # Continue with zeros
+
+            # Count schema violations (logs with validation_errors)
+            violations = day_logs.filter(validation_errors__isnull=False).count()
+
+            # Update metrics atomically
+            metrics.total_logs = total
+            metrics.valid_logs = valid
+            metrics.schema_violations = violations
+            metrics.logs_with_context = with_context
+            metrics.avg_data_quality_score = round(avg_q, 3)
+            metrics.min_data_quality_score = round(min_q, 3)
+            metrics.max_data_quality_score = round(max_q, 3)
+            metrics.avg_idle_ratio = round(avg_idle, 3)
+            metrics.avg_typing_rate_per_min = round(avg_typing, 2)
+            metrics.avg_activity_intensity = round(avg_intensity, 2)
+
+            # Set alert flags
+            metrics.quality_degradation_flag = avg_q < 0.75
+            violation_rate = (violations / total) if total > 0 else 0
+            metrics.high_violation_rate_flag = violation_rate > 0.10  # 10% threshold
+
+            # Save with update_fields for efficiency
+            metrics.save(update_fields=[
+                'total_logs', 'valid_logs', 'schema_violations', 'logs_with_context',
+                'avg_data_quality_score', 'min_data_quality_score', 'max_data_quality_score',
+                'avg_idle_ratio', 'avg_typing_rate_per_min', 'avg_activity_intensity',
+                'quality_degradation_flag', 'high_violation_rate_flag'
+            ])
+
+    except OperationalError as e:
+        # Handle database connection issues gracefully
+        # Log but don't fail the request
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Database connection issue in data quality signal: {e}")
+        # Could implement retry logic or queue for later processing here
+
+    except Exception as e:
+        # Catch any other unexpected errors to prevent request failures
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Unexpected error in data quality signal: {e}", exc_info=True)
 

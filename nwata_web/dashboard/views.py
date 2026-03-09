@@ -89,28 +89,41 @@ def dashboard(request):
     ]
 
     # App usage stats with proper duration calculation - filtered by org
+    # Use aggregation to avoid duplicates and improve performance
     app_stats = []
-    for app_name in ActivityLog.objects.filter(**org_filter).values_list('app_name', flat=True).distinct():
-        app_activities = ActivityLog.objects.filter(
-            app_name=app_name,
-            created_at__date=today,
-            **org_filter
-        ).annotate(
-            duration_minutes=ExpressionWrapper(
+    today_app_activities = ActivityLog.objects.filter(
+        created_at__date=today,
+        **org_filter
+    ).exclude(
+        app_name__isnull=True  # Exclude None app names
+    ).exclude(
+        app_name=''  # Exclude empty strings
+    ).values('app_name').annotate(
+        activity_count=Count('id'),
+        total_duration_seconds=Sum(
+            ExpressionWrapper(
                 F('end_time') - F('start_time'),
                 output_field=DurationField()
             )
         )
+    ).order_by('-total_duration_seconds')
 
-        total_duration = sum(a.duration_minutes.total_seconds() / 60 for a in app_activities)
+    for app_data in today_app_activities:
+        app_name = app_data['app_name']
+        count = app_data['activity_count']
+        total_seconds = app_data['total_duration_seconds']
+        
+        if total_seconds:
+            total_minutes = total_seconds.total_seconds() / 60
+        else:
+            total_minutes = 0
+            
         app_stats.append({
             'app_name': app_name,
-            'count': app_activities.count(),
-            'total_duration': round(total_duration, 1),
-            'avg_duration': round(total_duration / app_activities.count(), 1) if app_activities.count() > 0 else 0
+            'count': count,
+            'total_duration': round(total_minutes, 1),
+            'avg_duration': round(total_minutes / count, 1) if count > 0 else 0
         })
-
-    app_stats.sort(key=lambda x: x['total_duration'], reverse=True)
 
     # Session tracking - group activities within 5 minutes of each other
     sessions = []

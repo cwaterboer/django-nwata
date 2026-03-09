@@ -27,6 +27,15 @@ try:
 except Exception:
     pass
 
+# Try to import pynput for keyboard/mouse tracking
+try:
+    from pynput import keyboard, mouse
+    _PYNPUT_AVAILABLE = True
+except ImportError:
+    _PYNPUT_AVAILABLE = False
+    print("[WARNING] pynput not installed. Install with: pip install pynput")
+    print("[WARNING] Keyboard and mouse event tracking will be disabled.")
+
 # -----------------------------
 # CONFIG
 # -----------------------------
@@ -465,11 +474,11 @@ class DjangoSync:
 # Context signals aggregated per window/log
 # Flushed when window changes
 # 
-# NOTE: Context stats (typing/scroll) require keyboard/mouse listener integration.
-# To enable, install pynput and add:
-#   from pynput import keyboard, mouse
-#   keyboard.Listener(on_press=lambda k: agent.record_typing()).start()
-#   mouse.Listener(on_scroll=lambda x,y,dx,dy: agent.record_scroll()).start()
+# Event tracking: Uses pynput to monitor keyboard/mouse events in real-time.
+# - Typing events are counted for each key press
+# - Scroll events are tracked via mouse scroll wheel
+# - Mouse clicks are counted as activity/shortcut events
+# - All metrics are aggregated per window and included in sync payload
 # -----------------------------
 class ContextSignals:
     """Aggregates context signals for a single window log."""
@@ -587,11 +596,77 @@ class TrackerAgent:
         self.last_window = None
         self.last_time = None
         self.context_monitor = ContextMonitor()
+        self.keyboard_listener = None
+        self.mouse_listener = None
+
+    def _on_key_press(self, key):
+        """Called when a keyboard key is pressed."""
+        if self.running:
+            self.context_monitor.record_typing()
+
+    def _on_key_release(self, key):
+        """Called when a keyboard key is released."""
+        pass  # We only count on press
+
+    def _on_mouse_move(self, x, y):
+        """Called when mouse moves."""
+        pass  # We don't track mouse movement
+
+    def _on_mouse_click(self, x, y, button, pressed):
+        """Called when mouse button is clicked."""
+        if self.running and pressed:
+            # Count clicks as activity events (treated similarly to shortcuts)
+            self.context_monitor.record_shortcut()
+
+    def _on_mouse_scroll(self, x, y, dx, dy):
+        """Called when mouse wheel scrolls."""
+        if self.running:
+            self.context_monitor.record_scroll()
+
+    def _start_listeners(self):
+        """Start keyboard and mouse event listeners."""
+        if not _PYNPUT_AVAILABLE:
+            print("[AGENT] pynput not available, event tracking disabled")
+            return
+
+        try:
+            # Create and start keyboard listener
+            self.keyboard_listener = keyboard.Listener(
+                on_press=self._on_key_press,
+                on_release=self._on_key_release
+            )
+            self.keyboard_listener.start()
+            print("[AGENT] Keyboard listener started")
+
+            # Create and start mouse listener
+            self.mouse_listener = mouse.Listener(
+                on_move=self._on_mouse_move,
+                on_click=self._on_mouse_click,
+                on_scroll=self._on_mouse_scroll
+            )
+            self.mouse_listener.start()
+            print("[AGENT] Mouse listener started")
+        except Exception as e:
+            print(f"[AGENT ERROR] Failed to start event listeners: {e}")
+
+    def _stop_listeners(self):
+        """Stop keyboard and mouse event listeners."""
+        try:
+            if self.keyboard_listener:
+                self.keyboard_listener.stop()
+                print("[AGENT] Keyboard listener stopped")
+
+            if self.mouse_listener:
+                self.mouse_listener.stop()
+                print("[AGENT] Mouse listener stopped")
+        except Exception as e:
+            print(f"[AGENT ERROR] Failed to stop event listeners: {e}")
 
     def start(self):
         if self.running:
             return
         self.running = True
+        self._start_listeners()
         self.sync.signal("start")
         threading.Thread(target=self._loop, daemon=True).start()
         threading.Thread(target=self._sync_loop, daemon=True).start()
@@ -600,6 +675,7 @@ class TrackerAgent:
     def stop(self):
         if not self.running:
             return
+        self._stop_listeners()
         if self.last_window and self.last_time:
             now_iso = datetime.now(timezone.utc).isoformat()
             now = datetime.fromisoformat(now_iso.replace('Z', '+00:00')) if 'Z' in now_iso else datetime.fromisoformat(now_iso)
