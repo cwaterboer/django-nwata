@@ -335,7 +335,7 @@
                     <div class="activity-context" style="font-size: 0.85em; color: #999; margin-top: 5px;">
                         ⌨️ {{ activity.typing_count }} keys
                         🖱️ {{ activity.scroll_count }} scrolls
-                        {% if activity.shortcut_count > 0 %}⚡ {{ activity.shortcut_count }} shortcuts{% endif %}
+                        {% if activity.shortcut_count > 0 %}<span class="material-icons md-18">flash_on</span> {{ activity.shortcut_count }} shortcuts{% endif %}
                         {% if activity.idle_seconds > 1 %}⏸️ {{ activity.idle_seconds }}s idle{% endif %}
                     </div>
                     {% endif %}
@@ -359,7 +359,7 @@
         
         {% if weekly_streak >= 5 %}
             <div class="insight-card">
-                <div class="insight-title">⚡ Weekly Streak</div>
+                <div class="insight-title"><span class="material-icons md-24">flash_on</span> Weekly Streak</div>
                 <div class="insight-text">
                     You've logged activity for 
                     <span class="insight-metric">{{ weekly_streak }} days</span>
@@ -369,7 +369,7 @@
 
             {% if app_stats %}
             <div class="insight-card">
-                <div class="insight-title">📱 Top Application Today</div>
+                <div class="insight-title"><span class="material-icons md-24">phone_iphone</span> Top Application Today</div>
                 <div class="insight-text">
                     You spent most of your time in 
                     <span class="insight-metric">{{ app_stats.0.app_name }}</span>
@@ -379,7 +379,7 @@
             {% endif %}
 
             <div class="insight-card">
-                <div class="insight-title">📊 Today's Summary</div>
+                <div class="insight-title"><span class="material-icons md-24">bar_chart</span> Today's Summary</div>
                 <div class="insight-text">
                     Today: <span class="insight-metric">{{ total_focus_hours }}h total</span> across 
                     <span class="insight-metric">{{ activity_count_today }} activities</span>.
@@ -391,7 +391,7 @@
 
             {% if hourly_breakdown %}
             <div class="insight-card">
-                <div class="insight-title">🚀 Peak Activity</div>
+                <div class="insight-title"><span class="material-icons md-24">rocket</span> Peak Activity</div>
                 <div class="insight-text">
                     Most activity logged around 
                     <span class="insight-metric">{{ hourly_breakdown.0.hour }}:00</span>
@@ -401,7 +401,7 @@
             {% endif %}
         {% else %}
             <div class="insight-card" style="border-left-color: #ffc107;">
-                <div class="insight-title">📊 Insights Coming Soon</div>
+                <div class="insight-title"><span class="material-icons md-24">bar_chart</span> Insights Coming Soon</div>
                 <div class="insight-text">
                     Keep tracking! Insights will be available after you've logged activity for at least 5 days.
                     <br><br>

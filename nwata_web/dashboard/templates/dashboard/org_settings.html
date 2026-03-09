@@ -312,25 +312,25 @@ textarea {
     <div class="settings-tabs">
         <a href="{% url 'org_settings' %}?tab=general" 
            class="settings-tab {% if active_tab == 'general' %}active{% endif %}">
-            ⚙️ General
+            <span class="material-icons md-24">settings</span> General
         </a>
         <a href="{% url 'org_settings' %}?tab=members" 
            class="settings-tab {% if active_tab == 'members' %}active{% endif %}">
-            👥 Members
+            <span class="material-icons md-24">group</span> Members
         </a>
         {% if is_team %}
         <a href="{% url 'org_settings' %}?tab=departments" 
            class="settings-tab {% if active_tab == 'departments' %}active{% endif %}">
-            🏢 Departments
+            <span class="material-icons md-24">apartment</span> Departments
         </a>
         {% endif %}
         <a href="{% url 'org_settings' %}?tab=roles" 
            class="settings-tab {% if active_tab == 'roles' %}active{% endif %}">
-            🔐 Roles
+            <span class="material-icons md-24">security</span> Roles
         </a>
         <a href="{% url 'org_settings' %}?tab=audit" 
            class="settings-tab {% if active_tab == 'audit' %}active{% endif %}">
-            📝 Audit Log
+            <span class="material-icons md-24">list_alt</span> Audit Log
         </a>
     </div>
 

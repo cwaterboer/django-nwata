@@ -38,7 +38,7 @@
 
     <!-- Active Members Card -->
     <div class="settings-card">
-        <div class="settings-card-title">👥 Active Members ({{ active_users.count }})</div>
+        <div class="settings-card-title"><span class="material-icons md-24">group</span> Active Members ({{ active_users.count }})</div>
         <div class="settings-card-subtitle">Current team members in your organization</div>
         
         {% if active_users %}
@@ -84,7 +84,7 @@
     <!-- Pending Invitations Card -->
     {% if pending_users %}
     <div class="settings-card">
-        <div class="settings-card-title">⏳ Pending Invitations ({{ pending_users.count }})</div>
+        <div class="settings-card-title"><span class="material-icons md-24">access_time</span> Pending Invitations ({{ pending_users.count }})</div>
         <div class="settings-card-subtitle">Awaiting acceptance from invited members</div>
         
         <div style="overflow-x: auto;">

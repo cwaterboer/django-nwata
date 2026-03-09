@@ -265,7 +265,7 @@
                     <span class="status-badge completed">✓ Device Connected</span>
                 {% else %}
                     <div style="margin: 15px 0;">
-                        <a href="{% url 'agent-download' %}" class="btn btn-primary" download>📥 Download Agent</a>
+                        <a href="{% url 'agent-download' %}" class="btn btn-primary" download><span class="material-icons md-18">download</span> Download Agent</a>
                     </div>
                     <a href="{% url 'device_setup' %}" class="btn btn-secondary">Next Steps</a>
                     <span class="status-badge pending">⏳ Pending</span>
@@ -288,10 +288,10 @@
         <div class="quick-links">
             <h2>Quick Access</h2>
             <div class="link-buttons">
-                <a href="{% url 'device_setup' %}" class="btn btn-primary">🔧 Device Setup</a>
-                <a href="{% url 'dashboard' %}" class="btn btn-secondary">📊 Dashboard</a>
-                <a href="{% url 'profile' %}" class="btn btn-secondary">⚙️ Settings</a>
-                <a href="{% url 'logout' %}" class="btn btn-secondary">🚪 Logout</a>
+                <a href="{% url 'device_setup' %}" class="btn btn-primary"><span class="material-icons md-18">build</span> Device Setup</a>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary"><span class="material-icons md-18">bar_chart</span> Dashboard</a>
+                <a href="{% url 'profile' %}" class="btn btn-secondary"><span class="material-icons md-18">settings</span> Settings</a>
+                <a href="{% url 'logout' %}" class="btn btn-secondary"><span class="material-icons md-18">logout</span> Logout</a>
             </div>
         </div>
     </div>
