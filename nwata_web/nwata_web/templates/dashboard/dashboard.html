@@ -598,6 +598,23 @@ function generateColors(count) {
     }
     return colors;
 }
+
+// Switch canvas function (existing)
+function switchCanvas(canvasId) {
+    // Hide all canvases
+    document.querySelectorAll('.canvas-section').forEach(canvas => {
+        canvas.classList.remove('active');
+    });
+    
+    // Show selected canvas
+    document.getElementById(canvasId).classList.add('active');
+    
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
 </script>
 {% endblock %}
 
@@ -913,24 +930,3 @@ function generateColors(count) {
         {% endif %}
     </div>
 </div>
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-function switchCanvas(canvasId) {
-    // Hide all canvases
-    document.querySelectorAll('.canvas-section').forEach(canvas => {
-        canvas.classList.remove('active');
-    });
-    
-    // Show selected canvas
-    document.getElementById(canvasId).classList.add('active');
-    
-    // Update tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-}
-</script>
-{% endblock %}
