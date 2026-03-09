@@ -326,7 +326,279 @@
 .comparison-card .change-metric div:last-child {
     font-weight: 600;
 }
+
+/* Chart Controls */
+.view-btn {
+    transition: all 0.2s ease;
+}
+
+.view-btn.active {
+    background: #ff6600 !important;
+    color: white !important;
+    border-color: #ff6600 !important;
+}
+
+.view-btn:not(.active):hover {
+    background: #f8f9fa !important;
+    border-color: #ff6600 !important;
+    color: #ff6600 !important;
+}
+
+/* Chart Container */
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.chart-container canvas {
+    max-height: 400px;
+}
+
+/* App Selector Dropdown */
+.app-dropdown {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.app-dropdown label {
+    width: 100%;
+    margin: 0;
+}
+
+.app-dropdown label:hover {
+    background: #f8f9fa;
+}
 </style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let appUsageChart = null;
+let currentChartType = 'bar';
+let selectedApps = [];
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Get all initially selected apps
+    document.querySelectorAll('.app-checkbox:checked').forEach(checkbox => {
+        selectedApps.push(checkbox.value);
+    });
+
+    // Initialize chart
+    createChart();
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('app-selector-dropdown');
+        const selector = document.querySelector('.app-selector');
+        if (!selector.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+});
+
+// Switch between chart and cards view
+function switchView(viewType) {
+    const chartContainer = document.getElementById('chart-container');
+    const cardsContainer = document.getElementById('cards-container');
+    const chartBtn = document.getElementById('chart-view-btn');
+    const cardsBtn = document.getElementById('cards-view-btn');
+
+    if (viewType === 'chart') {
+        chartContainer.style.display = 'block';
+        cardsContainer.style.display = 'none';
+        chartBtn.classList.add('active');
+        cardsBtn.classList.remove('active');
+        createChart();
+    } else {
+        chartContainer.style.display = 'none';
+        cardsContainer.style.display = 'block';
+        chartBtn.classList.remove('active');
+        cardsBtn.classList.add('active');
+    }
+}
+
+// Change chart type
+function changeChartType() {
+    const chartTypeSelect = document.getElementById('chart-type');
+    currentChartType = chartTypeSelect.value;
+    createChart();
+}
+
+// Toggle app selector dropdown
+function toggleAppSelector() {
+    const dropdown = document.getElementById('app-selector-dropdown');
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+}
+
+// Toggle all apps selection
+function toggleAllApps() {
+    const selectAllCheckbox = document.getElementById('select-all-apps');
+    const appCheckboxes = document.querySelectorAll('.app-checkbox');
+
+    appCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+
+    updateSelectedApps();
+    createChart();
+}
+
+// Update selected apps list
+function updateSelectedApps() {
+    selectedApps = [];
+    document.querySelectorAll('.app-checkbox:checked').forEach(checkbox => {
+        selectedApps.push(checkbox.value);
+    });
+
+    // Update select all checkbox state
+    const selectAllCheckbox = document.getElementById('select-all-apps');
+    const totalApps = document.querySelectorAll('.app-checkbox').length;
+    selectAllCheckbox.checked = selectedApps.length === totalApps;
+    selectAllCheckbox.indeterminate = selectedApps.length > 0 && selectedApps.length < totalApps;
+}
+
+// Update chart when app selection changes
+function updateChart() {
+    updateSelectedApps();
+    createChart();
+}
+
+// Create or update the chart
+function createChart() {
+    const ctx = document.getElementById('appUsageChart').getContext('2d');
+
+    // Destroy existing chart
+    if (appUsageChart) {
+        appUsageChart.destroy();
+    }
+
+    // Get chart data from template variables
+    const appData = {{ app_comparison_json|safe }};
+    const period = '{{ current_period }}';
+
+    // Filter data based on selected apps
+    const filteredData = appData.filter(app => selectedApps.includes(app.app_name));
+
+    if (filteredData.length === 0) {
+        // Show empty state
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+        ctx.fillText('No apps selected. Please select apps to display.', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        return;
+    }
+
+    // Prepare data for chart
+    const labels = filteredData.map(app => app.app_name);
+    const currentData = filteredData.map(app => app.current.total_duration);
+    const previousData = period !== 'today' ? filteredData.map(app => app.previous.total_duration) : [];
+
+    // Generate colors
+    const colors = generateColors(filteredData.length);
+
+    const chartData = {
+        labels: labels,
+        datasets: [{
+            label: 'Current Period (minutes)',
+            data: currentData,
+            backgroundColor: colors.map(color => color + '80'), // Add transparency
+            borderColor: colors,
+            borderWidth: 2,
+            borderRadius: currentChartType === 'bar' ? 4 : 0,
+            borderSkipped: false,
+        }]
+    };
+
+    // Add previous period data if not today
+    if (period !== 'today') {
+        chartData.datasets.push({
+            label: 'Previous Period (minutes)',
+            data: previousData,
+            backgroundColor: colors.map(color => color + '40'), // More transparent
+            borderColor: colors.map(color => color + '80'),
+            borderWidth: 2,
+            borderRadius: currentChartType === 'bar' ? 4 : 0,
+            borderSkipped: false,
+        });
+    }
+
+    // Chart configuration
+    const config = {
+        type: currentChartType,
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: `App Usage Comparison - ${period.charAt(0).toUpperCase() + period.slice(1)} Period`,
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y} minutes`;
+                        }
+                    }
+                }
+            },
+            scales: currentChartType === 'bar' ? {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Time (minutes)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Applications'
+                    }
+                }
+            } : {}
+        }
+    };
+
+    // Special config for doughnut chart
+    if (currentChartType === 'doughnut') {
+        config.options.plugins.legend.position = 'right';
+        delete config.options.scales;
+    }
+
+    appUsageChart = new Chart(ctx, config);
+}
+
+// Generate distinct colors for apps
+function generateColors(count) {
+    const baseColors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+        '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+    ];
+
+    const colors = [];
+    for (let i = 0; i < count; i++) {
+        colors.push(baseColors[i % baseColors.length]);
+    }
+    return colors;
+}
+</script>
 {% endblock %}
 
 {% block content %}
@@ -438,8 +710,58 @@
             </div>
         </div>
 
-        <!-- Comparison Grid -->
-        <div class="comparison-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+        <!-- Chart Controls -->
+        <div class="chart-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+            <div class="view-toggle" style="display: flex; gap: 10px;">
+                <button id="chart-view-btn" class="view-btn active" onclick="switchView('chart')" style="padding: 8px 16px; border: 1px solid #ff6600; background: #ff6600; color: white; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle;">bar_chart</span>
+                    Chart View
+                </button>
+                <button id="cards-view-btn" class="view-btn" onclick="switchView('cards')" style="padding: 8px 16px; border: 1px solid #e9ecef; background: white; color: #666; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle;">view_module</span>
+                    Cards View
+                </button>
+            </div>
+
+            <div class="chart-settings" style="display: flex; gap: 10px; align-items: center;">
+                <select id="chart-type" onchange="changeChartType()" style="padding: 8px 12px; border: 1px solid #e9ecef; border-radius: 6px; background: white;">
+                    <option value="bar">Bar Chart</option>
+                    <option value="doughnut">Donut Chart</option>
+                </select>
+
+                <div class="app-selector" style="position: relative;">
+                    <button onclick="toggleAppSelector()" style="padding: 8px 12px; border: 1px solid #e9ecef; border-radius: 6px; background: white; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <span class="material-icons" style="font-size: 16px;">apps</span>
+                        Select Apps
+                        <span class="material-icons" style="font-size: 16px;">expand_more</span>
+                    </button>
+                    <div id="app-selector-dropdown" class="app-dropdown" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #e9ecef; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; min-width: 200px; max-height: 300px; overflow-y: auto;">
+                        <div style="padding: 10px; border-bottom: 1px solid #e9ecef; background: #f8f9fa;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="select-all-apps" onchange="toggleAllApps()" style="margin: 0;">
+                                <span style="font-weight: 600;">Select All</span>
+                            </label>
+                        </div>
+                        {% for app in app_comparison %}
+                        <div style="padding: 8px 10px; border-bottom: 1px solid #f8f9fa;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" class="app-checkbox" value="{{ app.app_name }}" checked onchange="updateChart()" style="margin: 0;">
+                                <span>{{ app.app_name }}</span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Container -->
+        <div id="chart-container" class="chart-container" style="margin-bottom: 30px;">
+            <canvas id="appUsageChart" width="400" height="200"></canvas>
+        </div>
+
+        <!-- Comparison Grid (Cards View) -->
+        <div id="cards-container" class="comparison-grid" style="display: none;">
             {% for app in app_comparison %}
             <div class="comparison-card" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid {% if app.trend == 'up' %}#28a745{% elif app.trend == 'down' %}#dc3545{% else %}#ffc107{% endif %};">
 

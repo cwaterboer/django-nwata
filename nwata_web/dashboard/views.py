@@ -8,6 +8,7 @@ from django.db.models.functions import TruncHour, ExtractHour
 from api.models import ActivityLog, Gamification, User, Organization
 from datetime import datetime, timedelta
 from collections import defaultdict
+import json
 from .profile_forms import ProfileUpdateForm
 
 def get_period_dates(period, reference_date):
@@ -315,6 +316,7 @@ def dashboard(request):
         'hourly_breakdown': hourly_breakdown,
         'app_stats': app_stats[:10],  # Top 10 apps (legacy - for other tabs)
         'app_comparison': app_comparison[:10],  # Top 10 apps with comparison data
+        'app_comparison_json': json.dumps(app_comparison[:10], default=str),  # JSON version for charts
         'current_period': period,
         'period_dates': period_dates,
         'session_stats': session_stats,
