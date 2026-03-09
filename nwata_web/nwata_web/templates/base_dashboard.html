@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Nwata Dashboard{% endblock %}</title>
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -111,6 +113,27 @@
             font-size: 1.2em;
         }
 
+        /* Material Icons styling */
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+
+        .material-icons.md-18 { font-size: 18px; }
+        .material-icons.md-24 { font-size: 24px; }
+        .material-icons.md-36 { font-size: 36px; }
+        .material-icons.md-48 { font-size: 48px; }
+
         .menu-label {
             overflow: hidden;
             white-space: nowrap;
@@ -214,13 +237,13 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">Nwata</div>
-                <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+                <button class="sidebar-toggle" onclick="toggleSidebar()"><span class="material-icons">menu</span></button>
             </div>
 
             <ul class="sidebar-menu">
                 <li class="menu-section">Overview</li>
                 <li class="menu-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" onclick="window.location.href=window.dashboardUrl">
-                    <span class="menu-icon">📊</span>
+                    <span class="menu-icon material-icons">dashboard</span>
                     <span class="menu-label">Dashboard</span>
                 </li>
                 
@@ -228,22 +251,22 @@
                 {% if request.organization %}
                 <li class="menu-section">Organization</li>
                 <li class="menu-item {% if request.resolver_match.url_name == 'org_settings' %}active{% endif %}" onclick="window.location.href=window.orgSettingsUrl">
-                    <span class="menu-icon">⚙️</span>
+                    <span class="menu-icon material-icons">settings</span>
                     <span class="menu-label">Settings</span>
                 </li>
                 {% endif %}
                 
                 <li class="menu-section">Account</li>
                 <li class="menu-item {% if request.resolver_match.url_name == 'device_setup' %}active{% endif %}" onclick="window.location.href=window.deviceSetupUrl">
-                    <span class="menu-icon">🖥️</span>
+                    <span class="menu-icon material-icons">computer</span>
                     <span class="menu-label">Device Setup</span>
                 </li>
                 <li class="menu-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" onclick="window.location.href=window.profileUrl">
-                    <span class="menu-icon">👤</span>
+                    <span class="menu-icon material-icons">person</span>
                     <span class="menu-label">My Profile</span>
                 </li>
                 <li class="menu-item" onclick="window.location.href=window.logoutUrl">
-                    <span class="menu-icon">🚪</span>
+                    <span class="menu-icon material-icons">logout</span>
                     <span class="menu-label">Logout</span>
                 </li>
             </ul>
@@ -258,7 +281,7 @@
                 </div>
                 <div class="header-right">
                     <div class="user-profile">
-                        <span class="user-icon">👤</span>
+                        <span class="user-icon material-icons">person</span>
                         <div class="user-info">
                             <div class="user-name">
                                 {% if user.first_name or user.last_name %}
