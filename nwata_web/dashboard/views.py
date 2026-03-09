@@ -10,6 +10,133 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 from .profile_forms import ProfileUpdateForm
 
+def get_period_dates(period, reference_date):
+    """Get date ranges for current and previous periods"""
+    if period == 'week':
+        # Week-on-week: current week vs previous week
+        week_start = reference_date - timedelta(days=reference_date.weekday())
+        current_start = week_start
+        current_end = reference_date
+        previous_start = week_start - timedelta(days=7)
+        previous_end = week_start - timedelta(days=1)
+    elif period == 'month':
+        # Month-on-month: current month vs previous month
+        current_start = reference_date.replace(day=1)
+        if reference_date.month == 12:
+            previous_start = reference_date.replace(year=reference_date.year, month=11, day=1)
+            previous_end = reference_date.replace(year=reference_date.year, month=11, day=30)
+        else:
+            previous_start = reference_date.replace(month=reference_date.month-1, day=1)
+            previous_end = reference_date.replace(day=1) - timedelta(days=1)
+        current_end = reference_date
+    elif period == 'quarter':
+        # Quarter-on-quarter: current quarter vs previous quarter
+        quarter = ((reference_date.month - 1) // 3) + 1
+        if quarter == 1:
+            current_start = reference_date.replace(month=1, day=1)
+            previous_start = reference_date.replace(year=reference_date.year-1, month=10, day=1)
+            previous_end = reference_date.replace(year=reference_date.year-1, month=12, day=31)
+        else:
+            current_start = reference_date.replace(month=((quarter-1)*3)+1, day=1)
+            previous_start = reference_date.replace(month=((quarter-2)*3)+1, day=1)
+            previous_end = current_start - timedelta(days=1)
+        current_end = reference_date
+    elif period == 'year':
+        # Year-on-year: current year vs previous year
+        current_start = reference_date.replace(month=1, day=1)
+        current_end = reference_date
+        previous_start = reference_date.replace(year=reference_date.year-1, month=1, day=1)
+        previous_end = reference_date.replace(year=reference_date.year-1, month=12, day=31)
+    else:  # 'today' or default
+        current_start = current_end = reference_date
+        previous_start = previous_end = reference_date - timedelta(days=1)
+
+    return {
+        'current': {'start': current_start, 'end': current_end},
+        'previous': {'start': previous_start, 'end': previous_end}
+    }
+
+def get_app_usage_stats(org_filter, date_range):
+    """Get app usage statistics for a given date range"""
+    app_activities = ActivityLog.objects.filter(
+        created_at__date__gte=date_range['start'],
+        created_at__date__lte=date_range['end'],
+        **org_filter
+    ).exclude(
+        app_name__isnull=True
+    ).exclude(
+        app_name=''
+    ).values('app_name').annotate(
+        activity_count=Count('id'),
+        total_duration_seconds=Sum(
+            ExpressionWrapper(
+                F('end_time') - F('start_time'),
+                output_field=DurationField()
+            )
+        )
+    ).order_by('-total_duration_seconds')
+
+    app_stats = []
+    for app_data in app_activities:
+        app_name = app_data['app_name']
+        count = app_data['activity_count']
+        total_seconds = app_data['total_duration_seconds']
+
+        if total_seconds:
+            total_minutes = total_seconds.total_seconds() / 60
+        else:
+            total_minutes = 0
+
+        app_stats.append({
+            'app_name': app_name,
+            'count': count,
+            'total_duration': round(total_minutes, 1),
+            'avg_duration': round(total_minutes / count, 1) if count > 0 else 0
+        })
+
+    return app_stats
+
+def create_app_comparison(current_stats, previous_stats, period):
+    """Create comparison data between current and previous periods"""
+    if not previous_stats:
+        return current_stats  # Return current stats if no comparison
+
+    # Create lookup dicts for easy comparison
+    current_dict = {app['app_name']: app for app in current_stats}
+    previous_dict = {app['app_name']: app for app in previous_stats}
+
+    comparison = []
+    all_apps = set(current_dict.keys()) | set(previous_dict.keys())
+
+    for app_name in all_apps:
+        current = current_dict.get(app_name, {'count': 0, 'total_duration': 0, 'avg_duration': 0})
+        previous = previous_dict.get(app_name, {'count': 0, 'total_duration': 0, 'avg_duration': 0})
+
+        # Calculate changes
+        count_change = current['count'] - previous['count']
+        duration_change = current['total_duration'] - previous['total_duration']
+        avg_change = current['avg_duration'] - previous['avg_duration']
+
+        # Calculate percentages (avoid division by zero)
+        count_change_pct = (count_change / previous['count'] * 100) if previous['count'] > 0 else (100 if current['count'] > 0 else 0)
+        duration_change_pct = (duration_change / previous['total_duration'] * 100) if previous['total_duration'] > 0 else (100 if current['total_duration'] > 0 else 0)
+
+        comparison.append({
+            'app_name': app_name,
+            'current': current,
+            'previous': previous,
+            'count_change': count_change,
+            'count_change_pct': round(count_change_pct, 1),
+            'duration_change': round(duration_change, 1),
+            'duration_change_pct': round(duration_change_pct, 1),
+            'avg_change': round(avg_change, 1),
+            'trend': 'up' if duration_change > 0 else 'down' if duration_change < 0 else 'same'
+        })
+
+    # Sort by current period duration (descending)
+    comparison.sort(key=lambda x: x['current']['total_duration'], reverse=True)
+    return comparison
+
 @login_required
 def dashboard(request):
     now = datetime.now()
@@ -89,41 +216,15 @@ def dashboard(request):
     ]
 
     # App usage stats with proper duration calculation - filtered by org
-    # Use aggregation to avoid duplicates and improve performance
-    app_stats = []
-    today_app_activities = ActivityLog.objects.filter(
-        created_at__date=today,
-        **org_filter
-    ).exclude(
-        app_name__isnull=True  # Exclude None app names
-    ).exclude(
-        app_name=''  # Exclude empty strings
-    ).values('app_name').annotate(
-        activity_count=Count('id'),
-        total_duration_seconds=Sum(
-            ExpressionWrapper(
-                F('end_time') - F('start_time'),
-                output_field=DurationField()
-            )
-        )
-    ).order_by('-total_duration_seconds')
+    # Support for time period comparisons
+    period = request.GET.get('period', 'today')
+    period_dates = get_period_dates(period, today)
 
-    for app_data in today_app_activities:
-        app_name = app_data['app_name']
-        count = app_data['activity_count']
-        total_seconds = app_data['total_duration_seconds']
-        
-        if total_seconds:
-            total_minutes = total_seconds.total_seconds() / 60
-        else:
-            total_minutes = 0
-            
-        app_stats.append({
-            'app_name': app_name,
-            'count': count,
-            'total_duration': round(total_minutes, 1),
-            'avg_duration': round(total_minutes / count, 1) if count > 0 else 0
-        })
+    app_stats = get_app_usage_stats(org_filter, period_dates['current'])
+    app_stats_previous = get_app_usage_stats(org_filter, period_dates['previous']) if period != 'today' else []
+
+    # Create comparison data
+    app_comparison = create_app_comparison(app_stats, app_stats_previous, period)
 
     # Session tracking - group activities within 5 minutes of each other
     sessions = []
@@ -212,7 +313,10 @@ def dashboard(request):
         'total_time_today': round(total_time_today, 1),
         'activity_count_today': today_activities.count(),
         'hourly_breakdown': hourly_breakdown,
-        'app_stats': app_stats[:10],  # Top 10 apps
+        'app_stats': app_stats[:10],  # Top 10 apps (legacy - for other tabs)
+        'app_comparison': app_comparison[:10],  # Top 10 apps with comparison data
+        'current_period': period,
+        'period_dates': period_dates,
         'session_stats': session_stats,
         'category_stats': category_stats,
         'user_stats': user_stats,

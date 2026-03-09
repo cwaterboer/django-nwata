@@ -236,7 +236,7 @@
 }
 
 .tab-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff6600 0%, #ea580c 100%);
     color: white;
 }
 
@@ -245,7 +245,86 @@
 }
 
 .tab-btn.active:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff6600 0%, #ea580c 100%);
+}
+
+/* Period Selector */
+.period-selector .period-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    background: #f8f9fa;
+    color: #666;
+    transition: all 0.2s;
+    border: 1px solid #e9ecef;
+}
+
+.period-selector .period-btn:hover {
+    background: #e9ecef;
+    color: #333;
+    transform: translateY(-1px);
+}
+
+.period-selector .period-btn.active {
+    background: linear-gradient(135deg, #ff6600, #ff8533);
+    color: white;
+    border-color: #ff6600;
+    box-shadow: 0 2px 4px rgba(255, 102, 0, 0.2);
+}
+
+/* Comparison Grid */
+.comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.comparison-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border-left: 4px solid #ff6600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.comparison-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.comparison-card .app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.comparison-card .app-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    color: #2c3e50;
+}
+
+.comparison-card .current-stats {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.comparison-card .change-metric {
+    text-align: center;
+}
+
+.comparison-card .change-metric div:first-child {
+    font-size: 0.8em;
+    color: #666;
+    margin-bottom: 2px;
+}
+
+.comparison-card .change-metric div:last-child {
+    font-weight: 600;
 }
 </style>
 {% endblock %}
@@ -306,16 +385,114 @@
 <!-- App Usage Canvas -->
 <div id="apps" class="canvas-section">
     <div class="canvas-area">
-        <div class="section-title">Application Usage Today</div>
-        <div class="app-grid">
-            {% for app in app_stats %}
-            <div class="app-card">
-                <div class="app-name">{{ app.app_name }}</div>
-                <div class="app-stats">{{ app.count }} activities</div>
-                <div class="app-time">{{ app.total_duration }}m</div>
+        <div class="section-title">Application Usage Comparison</div>
+
+        <!-- Period Selector -->
+        <div class="period-selector" style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <label style="font-weight: 600; color: #2c3e50;">Compare:</label>
+            <a href="?period=today" class="period-btn {% if current_period == 'today' %}active{% endif %}"
+               style="padding: 8px 16px; border-radius: 6px; text-decoration: none; background: #f8f9fa; color: #666; transition: all 0.2s;">
+                Today vs Yesterday
+            </a>
+            <a href="?period=week" class="period-btn {% if current_period == 'week' %}active{% endif %}"
+               style="padding: 8px 16px; border-radius: 6px; text-decoration: none; background: #f8f9fa; color: #666; transition: all 0.2s;">
+                This Week vs Last Week
+            </a>
+            <a href="?period=month" class="period-btn {% if current_period == 'month' %}active{% endif %}"
+               style="padding: 8px 16px; border-radius: 6px; text-decoration: none; background: #f8f9fa; color: #666; transition: all 0.2s;">
+                This Month vs Last Month
+            </a>
+            <a href="?period=quarter" class="period-btn {% if current_period == 'quarter' %}active{% endif %}"
+               style="padding: 8px 16px; border-radius: 6px; text-decoration: none; background: #f8f9fa; color: #666; transition: all 0.2s;">
+                This Quarter vs Last Quarter
+            </a>
+            <a href="?period=year" class="period-btn {% if current_period == 'year' %}active{% endif %}"
+               style="padding: 8px 16px; border-radius: 6px; text-decoration: none; background: #f8f9fa; color: #666; transition: all 0.2s;">
+                This Year vs Last Year
+            </a>
+        </div>
+
+        <!-- Period Info -->
+        <div class="period-info" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h4 style="margin: 0 0 8px 0; color: #ff6600; font-size: 1.1em;">Current Period</h4>
+                    <p style="margin: 0; color: #666;">
+                        {{ period_dates.current.start|date:"M j, Y" }}
+                        {% if period_dates.current.start != period_dates.current.end %}
+                            - {{ period_dates.current.end|date:"M j, Y" }}
+                        {% endif %}
+                    </p>
+                </div>
+                {% if current_period != 'today' %}
+                <div>
+                    <h4 style="margin: 0 0 8px 0; color: #666; font-size: 1.1em;">Previous Period</h4>
+                    <p style="margin: 0; color: #666;">
+                        {{ period_dates.previous.start|date:"M j, Y" }}
+                        {% if period_dates.previous.start != period_dates.previous.end %}
+                            - {{ period_dates.previous.end|date:"M j, Y" }}
+                        {% endif %}
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Comparison Grid -->
+        <div class="comparison-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+            {% for app in app_comparison %}
+            <div class="comparison-card" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid {% if app.trend == 'up' %}#28a745{% elif app.trend == 'down' %}#dc3545{% else %}#ffc107{% endif %};">
+
+                <!-- App Header -->
+                <div class="app-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; font-size: 1.1em; color: #2c3e50;">{{ app.app_name }}</h3>
+                    <div class="trend-indicator">
+                        {% if app.trend == 'up' %}
+                            <span class="material-icons" style="color: #28a745; font-size: 20px;">trending_up</span>
+                        {% elif app.trend == 'down' %}
+                            <span class="material-icons" style="color: #dc3545; font-size: 20px;">trending_down</span>
+                        {% else %}
+                            <span class="material-icons" style="color: #ffc107; font-size: 20px;">trending_flat</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Current Period Stats -->
+                <div class="current-stats" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Current Period</div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>{{ app.current.count }} activities</span>
+                        <span>{{ app.current.total_duration }}m total</span>
+                    </div>
+                </div>
+
+                <!-- Comparison -->
+                {% if current_period != 'today' %}
+                <div class="comparison-stats">
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">vs Previous Period</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="change-metric">
+                            <div style="font-size: 0.8em; color: #666;">Activities</div>
+                            <div style="font-weight: 600; color: {% if app.count_change > 0 %}#28a745{% elif app.count_change < 0 %}#dc3545{% else %}#666{% endif %}">
+                                {% if app.count_change > 0 %}+{% endif %}{{ app.count_change }}
+                                ({{ app.count_change_pct }}%)
+                            </div>
+                        </div>
+                        <div class="change-metric">
+                            <div style="font-size: 0.8em; color: #666;">Time</div>
+                            <div style="font-weight: 600; color: {% if app.duration_change > 0 %}#28a745{% elif app.duration_change < 0 %}#dc3545{% else %}#666{% endif %}">
+                                {% if app.duration_change > 0 %}+{% endif %}{{ app.duration_change }}m
+                                ({{ app.duration_change_pct }}%)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
             {% empty %}
-            <p style="color: #666;">No application data available yet. Start tracking to see insights!</p>
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #666;">
+                No application data available for the selected period. Start tracking to see insights!
+            </div>
             {% endfor %}
         </div>
     </div>
