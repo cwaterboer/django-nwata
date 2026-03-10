@@ -10,15 +10,15 @@
 
     <!-- Department Stats -->
     <div class="grid-2" style="margin-bottom: 30px;">
-        <div class="stat-card" style="border-top-color: #667eea;">
+        <div class="stat-card">
             <div class="stat-label">Total Departments</div>
             <div class="stat-value">{{ departments.count }}</div>
         </div>
-        <div class="stat-card" style="border-top-color: #667eea;">
+        <div class="stat-card">
             <div class="stat-label">Top-Level</div>
             <div class="stat-value">{{ departments|dictsort:"parent_department"|length }}</div>
         </div>
-        <div class="stat-card" style="border-top-color: #667eea;">
+        <div class="stat-card">
             <div class="stat-label">Members</div>
             <div class="stat-value">0</div>
         </div>
@@ -42,7 +42,7 @@
         
         <div style="display: grid; gap: 15px;">
             {% for dept in departments %}
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea; display: flex; justify-content: space-between; align-items: center;">
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h4 style="margin: 0 0 8px 0; color: #2c3e50; font-weight: 600;">
                         {% if dept.parent_department %}
