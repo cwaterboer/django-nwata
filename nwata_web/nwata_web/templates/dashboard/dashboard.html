@@ -875,7 +875,7 @@ function switchCanvas(canvasId) {
         
         {% if weekly_streak >= 5 %}
             <div class="insight-card">
-                <div class="insight-title"><span class="material-icons md-24">flash_on</span> Weekly Streak</div>
+                <div class="insight-title"><span class="material-icons md-18">flash_on</span> Weekly Streak</div>
                 <div class="insight-text">
                     You've logged activity for 
                     <span class="insight-metric">{{ weekly_streak }} days</span>
@@ -885,7 +885,7 @@ function switchCanvas(canvasId) {
 
             {% if app_stats %}
             <div class="insight-card">
-                <div class="insight-title"><span class="material-icons md-24">phone_iphone</span> Top Application Today</div>
+                <div class="insight-title"><span class="material-icons md-18">phone_iphone</span> Top Application Today</div>
                 <div class="insight-text">
                     You spent most of your time in 
                     <span class="insight-metric">{{ app_stats.0.app_name }}</span>
@@ -895,7 +895,7 @@ function switchCanvas(canvasId) {
             {% endif %}
 
             <div class="insight-card">
-                <div class="insight-title"><span class="material-icons md-24">bar_chart</span> Today's Summary</div>
+                <div class="insight-title"><span class="material-icons md-18">bar_chart</span> Today's Summary</div>
                 <div class="insight-text">
                     Today: <span class="insight-metric">{{ total_focus_hours }}h total</span> across 
                     <span class="insight-metric">{{ activity_count_today }} activities</span>.
@@ -907,7 +907,7 @@ function switchCanvas(canvasId) {
 
             {% if hourly_breakdown %}
             <div class="insight-card">
-                <div class="insight-title"><span class="material-icons md-24">rocket</span> Peak Activity</div>
+                <div class="insight-title"><span class="material-icons md-18">rocket</span> Peak Activity</div>
                 <div class="insight-text">
                     Most activity logged around 
                     <span class="insight-metric">{{ hourly_breakdown.0.hour }}:00</span>
@@ -917,7 +917,7 @@ function switchCanvas(canvasId) {
             {% endif %}
         {% else %}
             <div class="insight-card" style="border-left-color: #ffc107;">
-                <div class="insight-title"><span class="material-icons md-24">bar_chart</span> Insights Coming Soon</div>
+                <div class="insight-title"><span class="material-icons md-18">bar_chart</span> Insights Coming Soon</div>
                 <div class="insight-text">
                     Keep tracking! Insights will be available after you've logged activity for at least 5 days.
                     <br><br>
