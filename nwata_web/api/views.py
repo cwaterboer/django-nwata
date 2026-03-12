@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import secrets
 import logging
 import os
-from .models import ActivityLog, Gamification, User, Organization, Device, DeviceEvent, DataQualityMetrics, validate_context_data
+from .models import ActivityLog, Gamification, User, Organization, Device, DeviceEvent, DataQualityMetrics, Membership, Invite, validate_context_data
 
 logger = logging.getLogger(__name__)
 UserModel = get_user_model()
