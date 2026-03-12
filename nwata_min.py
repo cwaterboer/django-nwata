@@ -41,7 +41,10 @@ except ImportError:
 # -----------------------------
 DB_PATH = "nwata.db"
 TOKEN_FILE = "device_token.json"
-DJANGO_API_URL = "https://effective-fishstick-jwj65pv99w9fq4j9-8000.app.github.dev"
+# Production Render deployment - update this URL for different environments
+DJANGO_API_URL = "https://django-nwata.onrender.com"
+# Local development: uncomment below for localhost testing
+# DJANGO_API_URL = "http://localhost:8000"
 SYNC_BATCH_SIZE = 20
 TRACK_INTERVAL = 1  # seconds
 SYNC_INTERVAL = 10  # flush every 10s
@@ -272,13 +275,26 @@ class DeviceAuth:
         )
 
     def register_device(self, email, password, device_name):
+        """Register device with backend and obtain authentication token.
+        
+        The backend will automatically create a Membership record if one doesn't exist,
+        linking the auth_user to their organization.
+        """
         payload = {"email": email, "password": password, "device_name": device_name}
         try:
             res = requests.post(
-                f"{self.api_url}/api/device/register/", json=payload, timeout=5
+                f"{self.api_url}/api/device/register/", json=payload, timeout=10
             )
             res.raise_for_status()
             data = res.json()
+            
+            # Validate response has required fields
+            required_fields = ["token", "token_expires_at", "user", "organization"]
+            missing = [f for f in required_fields if f not in data]
+            if missing:
+                print(f"[AUTH ERROR] Registration response missing fields: {missing}")
+                return False
+            
             self.save_token(
                 {
                     "token": data["token"],
@@ -287,22 +303,34 @@ class DeviceAuth:
                     "organization": data["organization"],
                 }
             )
-            print("[AUTH] Device registered and token saved.")
+            print(f"[AUTH] Device registered for {data['user'].get('email', 'unknown')}")
             return True
+        except requests.exceptions.SSLError as e:
+            print(f"[AUTH ERROR] SSL Certificate Error: {e}")
+            print("[AUTH INFO] Try disabling SSL verification or check your network")
+            return False
+        except requests.exceptions.ConnectionError as e:
+            print(f"[AUTH ERROR] Connection failed: {e}")
+            print(f"[AUTH INFO] Verify the API URL is correct: {self.api_url}")
+            return False
         except Exception as e:
-            print("[AUTH ERROR] Registration failed:", e)
+            print(f"[AUTH ERROR] Registration failed: {type(e).__name__}: {e}")
             return False
 
     def refresh_token(self):
+        """Refresh device authentication token with backend."""
         if not self.token:
+            print("[AUTH] No token to refresh")
             return False
         headers = {"Authorization": f"Bearer {self.token}"}
         try:
             res = requests.post(
-                f"{self.api_url}/api/device/auth/", headers=headers, timeout=5
+                f"{self.api_url}/api/device/auth/", headers=headers, timeout=10
             )
             res.raise_for_status()
             data = res.json()
+            
+            # Update token with response (preserve user/org if missing)
             self.save_token(
                 {
                     "token": data["token"],
@@ -313,10 +341,16 @@ class DeviceAuth:
                     ),
                 }
             )
-            print("[AUTH] Token refreshed.")
+            print("[AUTH] Token refreshed successfully")
             return True
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                print("[AUTH ERROR] Token refresh failed: Unauthorized - token may be invalid")
+            else:
+                print(f"[AUTH ERROR] Token refresh failed ({e.response.status_code}): {e}")
+            return False
         except Exception as e:
-            print("[AUTH ERROR] Token refresh failed:", e)
+            print(f"[AUTH ERROR] Token refresh failed: {type(e).__name__}: {e}")
             return False
 
     def clear(self):
@@ -384,6 +418,11 @@ class DjangoSync:
         return {"Authorization": f"Bearer {self.auth.token}"}
 
     def flush(self):
+        """Flush unsynced activity logs to backend.
+        
+        The backend automatically links activity logs to the device's membership,
+        so the agent only needs to provide app/window and timing data.
+        """
         if not self.auth.is_valid():
             self.auth.refresh_token()
             if not self.auth.is_valid():
@@ -436,17 +475,25 @@ class DjangoSync:
                 f"{self.auth.api_url}/api/activity/",
                 json=payload,
                 headers=self._headers(),
-                timeout=5,
+                timeout=15,  # Increased timeout for batch uploads
             )
             if 200 <= res.status_code < 300:
                 self.db.mark_synced(ids)
                 print(f"[SYNC] Uploaded {len(ids)} logs with context ({skipped} validation skipped)")
+            elif res.status_code == 401:
+                print(f"[SYNC ERROR] Unauthorized (401) - Token may be expired")
+                self.auth.refresh_token()
             else:
-                print(f"[SYNC ERROR] Status {res.status_code} - {res.text}")
+                print(f"[SYNC ERROR] Status {res.status_code} - {res.text[:200]}")
+        except requests.exceptions.Timeout:
+            print("[SYNC ERROR] Request timeout - server took too long to respond")
+        except requests.exceptions.ConnectionError as e:
+            print(f"[SYNC ERROR] Connection failed: {e}")
         except Exception as e:
-            print("[SYNC ERROR]", e)
+            print(f"[SYNC ERROR] {type(e).__name__}: {e}")
 
     def signal(self, event_type: str):
+        """Send device lifecycle signal (start/stop) to backend."""
         if not self.auth.is_valid():
             self.auth.refresh_token()
         now_utc = datetime.now(timezone.utc).isoformat()
@@ -460,13 +507,14 @@ class DjangoSync:
                 f"{self.auth.api_url}/api/device/lifecycle/",
                 json=payload,
                 headers=self._headers(),
-                timeout=5,
+                timeout=10,
             )
-            print(
-                f"[SIGNAL] {event_type.upper()} sent, status {getattr(res,'status_code','fail')}"
-            )
+            if 200 <= res.status_code < 300:
+                print(f"[SIGNAL] {event_type.upper()} sent successfully")
+            else:
+                print(f"[SIGNAL] {event_type.upper()} status {res.status_code}")
         except Exception as e:
-            print(f"[SIGNAL ERROR] {event_type.upper()} -", e)
+            print(f"[SIGNAL ERROR] {event_type.upper()} failed: {type(e).__name__}: {e}")
 
 
 # -----------------------------
