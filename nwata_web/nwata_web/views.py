@@ -102,7 +102,10 @@ def onboarding_view(request):
     # Check if user has any devices registered
     try:
         nwata_user = User.objects.get(email=request.user.email)
-        has_devices = Device.objects.filter(user=nwata_user).exists()
+        # Check if user has any devices linked to their memberships
+        has_devices = Device.objects.filter(
+            membership__auth_user=request.user
+        ).exists() if hasattr(request, 'membership') and request.membership else False
         org = nwata_user.org
         is_team_org = org.is_team() if org else False
     except User.DoesNotExist:
@@ -129,8 +132,12 @@ def device_setup_view(request):
     except User.DoesNotExist:
         org = None
     
-    # Get user's devices
-    devices = Device.objects.filter(user__email=request.user.email).order_by('-last_seen')
+    # Get user's devices from their current membership
+    devices = []
+    if hasattr(request, 'membership') and request.membership:
+        devices = Device.objects.filter(
+            membership=request.membership
+        ).order_by('-last_seen_at')
     
     context = {
         'user': request.user,

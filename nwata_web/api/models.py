@@ -139,6 +139,8 @@ class Organization(models.Model):
         hash_digest = hashlib.sha256(email.lower().encode()).hexdigest()[:12]
         return f"personal-{hash_digest}"
 
+# legacy user record linking an auth user to an org; will be deprecated once
+# we migrate to the new Membership model.  For now we keep it to ease transition.
 class User(models.Model):
     email = models.EmailField(unique=True)
     org = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='users')
@@ -153,8 +155,105 @@ class User(models.Model):
     def __str__(self):
         return f"{self.email} ({self.org.name})"
 
+
+# --- new multi‑membership architecture ---
+
+class Membership(models.Model):
+    ROLE_CHOICES = [
+        ('owner', 'Owner'),
+        ('admin', 'Admin'),
+        ('member', 'Member'),
+    ]
+    LICENSE_CHOICES = [
+        ('individual', 'Individual'),
+        ('team', 'Team'),
+    ]
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('pending', 'Pending'),
+        ('invited', 'Invited'),
+    ]
+
+    auth_user = models.ForeignKey(
+        'auth.User',
+        on_delete=models.CASCADE,
+        related_name='memberships'
+    )
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='memberships'
+    )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
+    license_type = models.CharField(max_length=20, choices=LICENSE_CHOICES, default='individual')
+    email_used = models.EmailField(help_text='Email address used to join this org')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [['auth_user', 'organization']]
+        indexes = [
+            models.Index(fields=['auth_user']),
+            models.Index(fields=['organization']),
+        ]
+
+    def __str__(self):
+        return f"{self.auth_user.email} @ {self.organization.name} ({self.role})"
+
+
+class Device(models.Model):
+    membership = models.ForeignKey(
+        Membership,
+        on_delete=models.CASCADE,
+        related_name='devices',
+        null=True,
+        blank=True
+    )
+    device_name = models.CharField(max_length=255, default='Device')
+    device_type = models.CharField(max_length=50, blank=True, default='')
+    token = models.CharField(max_length=512, unique=True, null=True, blank=True)
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+    last_seen_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['token']),
+            models.Index(fields=['membership', 'token']),
+        ]
+
+    def __str__(self):
+        return f"{self.device_name} ({self.membership})"
+
+
+class Invite(models.Model):
+    STATUS_CHOICES = [
+        ('sent', 'Sent'),
+        ('accepted', 'Accepted'),
+        ('revoked', 'Revoked'),
+    ]
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='invites'
+    )
+    email = models.EmailField(null=True, blank=True)
+    role = models.CharField(max_length=20, choices=Membership.ROLE_CHOICES, default='member')
+    license_type = models.CharField(max_length=20, choices=Membership.LICENSE_CHOICES, default='team')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='sent')
+    token = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Invite {self.email} to {self.organization.name} ({self.status})"
+
 class ActivityLog(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activity_logs')
+    # new schema: link log to membership and optionally device
+    membership = models.ForeignKey('Membership', on_delete=models.CASCADE, related_name='activity_logs', null=True, blank=True)
+    device = models.ForeignKey('Device', on_delete=models.SET_NULL, null=True, blank=True, related_name='activity_logs')
+    # legacy field kept temporarily to ease migration
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activity_logs', null=True, blank=True)
     app_name = models.CharField(max_length=255, db_index=True)
     window_title = models.CharField(max_length=500, null=True, blank=True)
     start_time = models.DateTimeField(db_index=True)
@@ -211,22 +310,6 @@ class Gamification(models.Model):
         return f"{self.user.email} - {self.date} (Points: {self.points}, Streak: {self.streak})"
 
 
-class Device(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='devices')
-    name = models.CharField(max_length=255, default='Agent')
-    token = models.CharField(max_length=512, unique=True)
-    token_expires_at = models.DateTimeField()
-    last_seen = models.DateTimeField(auto_now=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['token']),
-            models.Index(fields=['user', 'last_seen']),
-        ]
-
-    def __str__(self):
-        return f"{self.name} ({self.user.email})"
 
 
 class DeviceEvent(models.Model):

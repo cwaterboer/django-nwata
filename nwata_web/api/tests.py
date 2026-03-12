@@ -50,9 +50,21 @@ class ActivityIngestAPITest(TestCase):
         self.url = '/api/activity/'
         self.org = Organization.objects.create(name="Test Org", subdomain="test")
         self.user = User.objects.create(email="test@example.com", org=self.org)
+        
+        # Create auth user and membership for device
+        from django.contrib.auth.models import User as AuthUser
+        self.auth_user = AuthUser.objects.create_user(email="test@example.com", username="test", password="test")
+        self.membership = Membership.objects.create(
+            auth_user=self.auth_user,
+            organization=self.org,
+            role='member',
+            email_used='test@example.com',
+            status='active'
+        )
+        
         self.device = Device.objects.create(
-            user=self.user,
-            name="Test Agent",
+            membership=self.membership,
+            device_name="Test Agent",
             token="test-token",
             token_expires_at=timezone.now() + timedelta(days=1)
         )

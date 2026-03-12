@@ -12,8 +12,11 @@ from django.urls import reverse
 
 from api.models import (
     User as NwataUser, Organization, UserOrgRole, Role, 
-    AuditLog, Department, Permission, RolePermission
+    AuditLog, Department, Permission, RolePermission,
+    Membership, Invite
 )
+from django.contrib.auth.models import User as AuthUser
+import secrets
 from api.permissions import require_org_admin, require_org_member
 from dashboard.org_admin_forms import (
     InviteUserForm, ChangeUserRoleForm, RemoveUserForm
@@ -84,74 +87,94 @@ def org_settings(request):
     
     # Tab: Members
     if active_tab == 'members':
-        active_users = UserOrgRole.objects.filter(
-            organization=org,
-            state='active'
-        ).select_related('user', 'role').order_by('user__email')
-        
-        pending_users = UserOrgRole.objects.filter(
-            organization=org,
-            state__in=['pending', 'invited']
-        ).select_related('user', 'role').order_by('created_at')
-        
-        # Handle invite form
-        if request.method == 'POST' and 'invite_user' in request.POST:
-            invite_form = InviteUserForm(request.POST, org=org)
-            if invite_form.is_valid():
-                email = invite_form.cleaned_data['email']
-                role_name = invite_form.cleaned_data['role']
-                
-                existing = UserOrgRole.objects.filter(
-                    organization=org,
-                    user__email=email
-                ).first()
-                
-                if existing:
-                    messages.error(request, f"User {email} is already in this organization.")
-                else:
-                    try:
-                        invited_user = NwataUser.objects.get(email=email)
-                    except NwataUser.DoesNotExist:
-                        invited_user = None
-                    
-                    role = Role.objects.get(name=role_name)
-                    initial_state = 'invited' if invited_user else 'pending'
-                    
-                    user_org_role = UserOrgRole.objects.create(
-                        user=invited_user if invited_user else None,
-                        organization=org,
-                        role=role,
-                        state=initial_state,
-                        invited_by=nwata_user,
-                        invited_at=timezone.now()
-                    )
-                    
-                    AuditLog.objects.create(
-                        actor=nwata_user,
-                        actor_email=request.user.email,
-                        action='user.invited',
-                        resource_type='user_org_role',
-                        resource_id=user_org_role.id,
-                        organization=org,
-                        changes_after={
-                            'email': email,
-                            'role': role_name,
-                            'organization': org.name,
-                            'state': initial_state
-                        },
-                        ip_address=_get_client_ip(request)
-                    )
-                    
-                    messages.success(request, f"Invitation sent to {email}.")
-                    return redirect(reverse('org_settings') + '?tab=members')
+        # personal accounts should not be able to manage members
+        if org.is_personal():
+            messages.warning(request, "Membership features are not available for individual accounts.")
+            context.update({
+                'active_users': [],
+                'pending_users': [],
+                'invite_form': None,
+            })
         else:
-            invite_form = InviteUserForm(org=org)
-        
-        context.update({
-            'active_users': active_users,
-            'pending_users': pending_users,
-            'invite_form': invite_form,
-        })
+            # use new Membership model for active and pending/invited members
+            active_users = Membership.objects.filter(
+                organization=org,
+                status='active'
+            ).select_related('auth_user').order_by('email_used')
+
+            pending_users = Membership.objects.filter(
+                organization=org,
+                status__in=['pending', 'invited']
+            ).select_related('auth_user').order_by('created_at')
+
+            # Handle invite form
+            if request.method == 'POST' and 'invite_user' in request.POST:
+                invite_form = InviteUserForm(request.POST, org=org)
+                if invite_form.is_valid():
+                    email = invite_form.cleaned_data['email']
+                    role_name = invite_form.cleaned_data['role']
+
+                    # check for any existing membership or invite
+                    existing = Membership.objects.filter(
+                        organization=org,
+                        email_used=email
+                    ).first()
+                    if existing:
+                        messages.error(request, f"User {email} is already in this organization.")
+                    else:
+                        # create invite record
+                        token = secrets.token_urlsafe(32)
+                        invite = Invite.objects.create(
+                            organization=org,
+                            email=email,
+                            role=role_name,
+                            license_type='team',
+                            token=token,
+                            status='sent'
+                        )
+
+                        # if the auth user already exists, create a membership in invited state
+                        try:
+                            auth_user = AuthUser.objects.get(email=email)
+                        except AuthUser.DoesNotExist:
+                            auth_user = None
+
+                        if auth_user:
+                            Membership.objects.create(
+                                auth_user=auth_user,
+                                organization=org,
+                                role=role_name,
+                                license_type='team',
+                                email_used=email,
+                                status='invited'
+                            )
+
+                        AuditLog.objects.create(
+                            actor=nwata_user,
+                            actor_email=request.user.email,
+                            action='user.invited',
+                            resource_type='invite',
+                            resource_id=invite.id,
+                            organization=org,
+                            changes_after={
+                                'email': email,
+                                'role': role_name,
+                                'organization': org.name,
+                                'status': 'sent'
+                            },
+                            ip_address=_get_client_ip(request)
+                        )
+
+                        messages.success(request, f"Invitation sent to {email}.")
+                        return redirect(reverse('org_settings') + '?tab=members')
+            else:
+                invite_form = InviteUserForm(org=org)
+
+            context.update({
+                'active_users': active_users,
+                'pending_users': pending_users,
+                'invite_form': invite_form,
+            })
     
     # Tab: Departments
     if active_tab == 'departments':
@@ -202,104 +225,6 @@ def manage_users(request):
     return redirect(reverse('org_settings') + '?tab=members')
 
 
-# Legacy view functions (kept for backward compatibility with direct URL access)
-    
-    if not org:
-        messages.error(request, "You are not part of any organization.")
-        return redirect('dashboard')
-    
-    # Get all active users in organization
-    active_users = UserOrgRole.objects.filter(
-        organization=org,
-        state='active'
-    ).select_related('user', 'role').order_by('user__email')
-    
-    # Get pending/invited users
-    pending_users = UserOrgRole.objects.filter(
-        organization=org,
-        state__in=['pending', 'invited']
-    ).select_related('user', 'role').order_by('created_at')
-    
-    # Handle invitation
-    if request.method == 'POST' and 'invite_user' in request.POST:
-        form = InviteUserForm(request.POST, org=org)
-        if form.is_valid():
-            email = form.cleaned_data['email']
-            role_name = form.cleaned_data['role']
-            
-            # Check if user already exists in org
-            existing = UserOrgRole.objects.filter(
-                organization=org,
-                user__email=email
-            ).first()
-            
-            if existing:
-                messages.error(request, f"User {email} is already in this organization.")
-            else:
-                # Try to find existing Nwata user
-                try:
-                    nwata_user = NwataUser.objects.get(email=email)
-                except NwataUser.DoesNotExist:
-                    # Create pending user
-                    nwata_user = None
-                
-                role = Role.objects.get(name=role_name)
-                
-                # Create UserOrgRole (invited state if user exists, pending if not)
-                initial_state = 'invited' if nwata_user else 'pending'
-                
-                user_org_role = UserOrgRole.objects.create(
-                    user=nwata_user if nwata_user else None,
-                    organization=org,
-                    role=role,
-                    state=initial_state,
-                    invited_by=nwata_user,
-                    invited_at=timezone.now()
-                )
-                
-                # Log audit entry
-                AuditLog.objects.create(
-                    actor=nwata_user,
-                    actor_email=request.user.email,
-                    action='user.invited',
-                    resource_type='user_org_role',
-                    resource_id=user_org_role.id,
-                    organization=org,
-                    changes_after={
-                        'email': email,
-                        'role': role_name,
-                        'organization': org.name,
-                        'state': initial_state
-                    },
-                    ip_address=_get_client_ip(request)
-                )
-                
-                # TODO: Send invitation email
-                messages.success(
-                    request, 
-                    f"Invitation sent to {email} with {role_name} role."
-                )
-                return redirect('manage_users')
-        
-        context = {
-            'org': org,
-            'active_users': active_users,
-            'pending_users': pending_users,
-            'invite_form': form,
-        }
-        return render(request, 'dashboard/manage_users.html', context)
-    
-    # Initial GET request
-    invite_form = InviteUserForm(org=org)
-    
-    context = {
-        'org': org,
-        'active_users': active_users,
-        'pending_users': pending_users,
-        'invite_form': invite_form,
-    }
-    
-    return render(request, 'dashboard/manage_users.html', context)
 
 
 @login_required

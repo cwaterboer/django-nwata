@@ -5,7 +5,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.db.models import Count, Sum, Avg, F, ExpressionWrapper, DurationField
 from django.db.models.functions import TruncHour, ExtractHour
-from api.models import ActivityLog, Gamification, User, Organization
+from api.models import ActivityLog, Gamification, User, Organization, Membership
 from datetime import datetime, timedelta
 from collections import defaultdict
 import json
@@ -341,7 +341,15 @@ def profile_view(request):
     else:
         form = ProfileUpdateForm(user=request.user)
     
-    # Get organization info
+    # gather membership information for the current auth user
+    memberships = []
+    try:
+        memberships = Membership.objects.select_related('organization').filter(auth_user=request.user)
+    except Exception:
+        memberships = []
+
+    # legacy compatibility: single org from old User table
+    org = None
     try:
         nwata_user = User.objects.get(email=request.user.email)
         org = nwata_user.org
@@ -351,6 +359,7 @@ def profile_view(request):
     context = {
         'form': form,
         'org': org,
+        'memberships': memberships,
         'current_user': request.user,
     }
     return render(request, 'dashboard/profile.html', context)

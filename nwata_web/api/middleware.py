@@ -7,8 +7,9 @@ from .models import (
     Organization,
     OrganizationState,
     Role,
+    Membership,
+    Device,
 )
-
 
 class OrganizationContextMiddleware:
     """
@@ -23,27 +24,33 @@ class OrganizationContextMiddleware:
         request.organization = None
         request.user_role = None
         request.user_org_role = None
+        request.membership = None  # new membership context
         
         if request.user.is_authenticated:
-            nwata_user = None
+            # locate the membership rather than the legacy user
             try:
-                nwata_user = NwataUser.objects.select_related('org').get(email=request.user.email)
-                request.organization = nwata_user.org
-                
-                # Get user's role in organization
+                membership = Membership.objects.select_related('organization').get(
+                    auth_user=request.user,
+                    status='active'
+                )
+                request.membership = membership
+                request.organization = membership.organization
+                request.user_role = membership.role
+                # keep user_org_role for legacy compatibility (if needed)
                 try:
-                    user_org_role = UserOrgRole.objects.select_related('role').get(
-                        user=nwata_user,
-                        organization=nwata_user.org,
+                    # map to existing UserOrgRole if present
+                    request.user_org_role = UserOrgRole.objects.get(
+                        user__email=request.user.email,
+                        organization=membership.organization,
                         state='active'
                     )
-                    request.user_role = user_org_role.role
-                    request.user_org_role = user_org_role
                 except UserOrgRole.DoesNotExist:
-                    pass
-            except NwataUser.DoesNotExist:
-                nwata_user = self._provision_user_context(request.user)
-                if nwata_user:
+                    request.user_org_role = None
+            except Membership.DoesNotExist:
+                # fallback to legacy behavior
+                nwata_user = None
+                try:
+                    nwata_user = NwataUser.objects.select_related('org').get(email=request.user.email)
                     request.organization = nwata_user.org
                     try:
                         user_org_role = UserOrgRole.objects.select_related('role').get(
@@ -55,6 +62,20 @@ class OrganizationContextMiddleware:
                         request.user_org_role = user_org_role
                     except UserOrgRole.DoesNotExist:
                         pass
+                except NwataUser.DoesNotExist:
+                    nwata_user = self._provision_user_context(request.user)
+                    if nwata_user:
+                        request.organization = nwata_user.org
+                        try:
+                            user_org_role = UserOrgRole.objects.select_related('role').get(
+                                user=nwata_user,
+                                organization=nwata_user.org,
+                                state='active'
+                            )
+                            request.user_role = user_org_role.role
+                            request.user_org_role = user_org_role
+                        except UserOrgRole.DoesNotExist:
+                            pass
         
         response = self.get_response(request)
         return response

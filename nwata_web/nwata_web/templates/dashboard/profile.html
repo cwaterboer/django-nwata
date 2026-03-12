@@ -154,6 +154,16 @@ button, .btn {
 {% block content %}
 <div class="content-area profile-section">
     <h1 class="page-title"><span class="material-icons md-36">settings</span> Profile Settings</h1>
+    {% if memberships %}
+    <div class="section-subtitle" style="margin-bottom: 15px;">
+        Workspaces:
+        <ul style="list-style: none; padding: 0;">
+            {% for m in memberships %}
+                <li>{{ m.organization.name }} ({{ m.role|capfirst }})</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 
     {% if messages %}
     <div class="messages">

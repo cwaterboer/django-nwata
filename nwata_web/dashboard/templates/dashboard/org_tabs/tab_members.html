@@ -1,6 +1,7 @@
 <!-- Members Tab -->
 {% if active_tab == 'members' %}
 <div class="tab-content">
+    {% if not org.is_personal %}
     <!-- Invite New Member Card -->
     <div class="settings-card">
         <div class="settings-card-title">✉️ Invite New Member</div>
@@ -36,6 +37,7 @@
         </form>
     </div>
 
+    {% if not org.is_personal %}
     <!-- Active Members Card -->
     <div class="settings-card">
         <div class="settings-card-title"><span class="material-icons md-18">group</span> Active Members ({{ active_users.count }})</div>
@@ -55,15 +57,15 @@
                 <tbody>
                     {% for user_role in active_users %}
                     <tr>
-                        <td>{{ user_role.user.email }}</td>
+                        <td>{{ user_role.auth_user.email }}</td>
                         <td>
                             <span class="badge badge-blue">
-                                {{ user_role.role.name|upper }}
+                                {{ user_role.role|upper }}
                             </span>
                         </td>
-                        <td>{{ user_role.accepted_at|date:"M d, Y" }}</td>
+                        <td>{{ user_role.created_at|date:"M d, Y" }}</td>
                         <td style="font-size: 0.9em;">
-                            {% if user_role.role.name != 'owner' and user_role.user.email != request.user.email %}
+                            {% if user_role.role != 'owner' and user_role.auth_user.email != request.user.email %}
                                 <a href="{% url 'change_user_role' user_role.id %}" style="color: #ff6600; text-decoration: none; font-weight: 600;">Change</a>
                                 <span style="color: #d1d5db;">•</span>
                                 <a href="{% url 'remove_user' user_role.id %}" style="color: #dc2626; text-decoration: none; font-weight: 600;">Remove</a>
@@ -100,18 +102,18 @@
                 <tbody>
                     {% for user_role in pending_users %}
                     <tr>
-                        <td>{{ user_role.user.email|default:"(pending)" }}</td>
+                        <td>{{ user_role.auth_user.email }}</td>
                         <td>
                             <span class="badge badge-yellow">
-                                {{ user_role.role.name|upper }}
+                                {{ user_role.role|upper }}
                             </span>
                         </td>
                         <td>
                             <span class="badge badge-yellow" style="font-size: 0.8em;">
-                                {{ user_role.state|upper }}
+                                {{ user_role.status|upper }}
                             </span>
                         </td>
-                        <td>{{ user_role.invited_at|date:"M d, Y" }}</td>
+                        <td>{{ user_role.created_at|date:"M d, Y" }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

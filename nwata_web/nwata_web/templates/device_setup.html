@@ -377,13 +377,13 @@ pip install requests pywin32  # Windows</pre>
             {% for device in devices %}
             <div class="device-item">
                 <div>
-                    <div class="device-name">{{ device.name }}</div>
+                    <div class="device-name">{{ device.device_name }}</div>
                     <div class="device-status">
-                        Last seen: {{ device.last_seen|timesince }} ago
-                        {% if device.token_expires_at > now %}
+                        Last seen: {% if device.last_seen_at %}{{ device.last_seen_at|timesince }} ago{% else %}Never{% endif %}
+                        {% if device.last_seen_at %}
                             <span class="status-online">● Active</span>
                         {% else %}
-                            <span style="color: #dc3545;">● Expired</span>
+                            <span style="color: #dc3545;">● Inactive</span>
                         {% endif %}
                     </div>
                 </div>

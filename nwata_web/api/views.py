@@ -38,15 +38,15 @@ class DeviceAuthMixin:
 
         token = auth_header.split(' ', 1)[1].strip()
         try:
-            device = Device.objects.select_related('user', 'user__org').get(token=token)
+            device = Device.objects.select_related('membership__organization').get(token=token)
         except Device.DoesNotExist:
             raise PermissionError("Invalid device token")
 
-        if require_active and device.token_expires_at < timezone.now():
+        if require_active and device.token_expires_at and device.token_expires_at < timezone.now():
             raise PermissionError("Device token expired")
 
-        device.last_seen = timezone.now()
-        device.save(update_fields=["last_seen"])
+        device.last_seen_at = timezone.now()
+        device.save(update_fields=["last_seen_at"])
         return device
 
 
@@ -72,20 +72,54 @@ class DeviceRegister(APIView):
         if auth_user is None:
             return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
-        # Map to analytics User
+        # Get or create user's active membership
+        membership, created = None, False
+        org = None
+        
         try:
-            nwata_user = User.objects.select_related('org').get(email=auth_user.email)
-        except User.DoesNotExist:
-            # Fallback: create organization if missing
-            org, _ = Organization.objects.get_or_create(
-                subdomain="default",
-                defaults={"name": "Default Organization"}
+            # Try to get existing active membership
+            membership = Membership.objects.select_related('organization').get(
+                auth_user=auth_user,
+                status='active'
             )
-            nwata_user = User.objects.create(email=auth_user.email, org=org)
+            org = membership.organization
+        except Membership.DoesNotExist:
+            # No active membership - check legacy User model
+            try:
+                nwata_user = User.objects.select_related('org').get(email=auth_user.email)
+                org = nwata_user.org
+            except User.DoesNotExist:
+                # Create default organization if user has no org
+                org, _ = Organization.objects.get_or_create(
+                    subdomain="default",
+                    defaults={"name": "Default Organization"}
+                )
+            
+            # Create a Membership for this auth_user on their organization
+            if org:
+                membership, created = Membership.objects.get_or_create(
+                    auth_user=auth_user,
+                    organization=org,
+                    defaults={
+                        'role': 'member',
+                        'email_used': auth_user.email,
+                        'status': 'active'
+                    }
+                )
+                # If membership existed but was not active, activate it
+                if not created and membership.status != 'active':
+                    membership.status = 'active'
+                    membership.save(update_fields=['status'])
+
+        if not org or not membership:
+            return Response(
+                {"error": "Failed to initialize user organization"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         device = Device.objects.create(
-            user=nwata_user,
-            name=device_name,
+            membership=membership,
+            device_name=device_name,
             token_expires_at=timezone.now(),  # will be set in _issue_device_token
         )
 
@@ -95,13 +129,13 @@ class DeviceRegister(APIView):
             "token": token,
             "token_expires_at": expires_at.isoformat(),
             "user": {
-                "email": nwata_user.email,
-                "id": nwata_user.id,
+                "email": auth_user.email,
+                "id": auth_user.id,
             },
             "organization": {
-                "id": nwata_user.org.id if nwata_user.org else None,
-                "subdomain": nwata_user.org.subdomain if nwata_user.org else None,
-                "name": nwata_user.org.name if nwata_user.org else None,
+                "id": org.id,
+                "subdomain": org.subdomain,
+                "name": org.name,
             }
         }, status=status.HTTP_201_CREATED)
 
@@ -118,18 +152,22 @@ class DeviceAuth(DeviceAuthMixin, APIView):
         # Refresh token/expiry
         token, expires_at = _issue_device_token(device)
 
+        org_data = {}
+        if device.membership:
+            org_data = {
+                "id": device.membership.organization.id,
+                "subdomain": device.membership.organization.subdomain,
+                "name": device.membership.organization.name,
+            }
+
         return Response({
             "token": token,
             "token_expires_at": expires_at.isoformat(),
             "user": {
-                "email": device.user.email,
-                "id": device.user.id,
+                "email": device.membership.auth_user.email if device.membership else None,
+                "id": device.membership.auth_user.id if device.membership else None,
             },
-            "organization": {
-                "id": device.user.org.id if device.user.org else None,
-                "subdomain": device.user.org.subdomain if device.user.org else None,
-                "name": device.user.org.name if device.user.org else None,
-            }
+            "organization": org_data
         }, status=status.HTTP_200_OK)
 
 
@@ -174,9 +212,11 @@ class ActivityIngest(DeviceAuthMixin, APIView):
 
         try:
             device = self._get_device_from_request(request)
-            org = device.user.org
+            if not device.membership:
+                raise ValueError("Device is not associated with a membership")
+            org = device.membership.organization
             if org is None:
-                raise ValueError("Device user is not associated with an organization")
+                raise ValueError("Device membership is not associated with an organization")
         except (PermissionError, ValueError) as exc:
             return Response({"error": str(exc)}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -196,7 +236,7 @@ class ActivityIngest(DeviceAuthMixin, APIView):
                 for idx, log_entry in enumerate(data):
                     try:
                         self._validate_log_entry(log_entry)
-                        self._process_single_log(log_entry, device.user)
+                        self._process_single_log(log_entry, device.membership)
                         processed_count += 1
                     except ValueError as e:
                         errors.append(f"Entry {idx}: {str(e)}")
@@ -216,7 +256,7 @@ class ActivityIngest(DeviceAuthMixin, APIView):
             else:
                 # Single log entry
                 self._validate_log_entry(data)
-                activity = self._process_single_log(data, device.user)
+                activity = self._process_single_log(data, device.membership)
                 logger.info(f"Created single ActivityLog: {activity.id}")
                 return Response(
                     {"status": "success", "id": activity.id},
@@ -267,13 +307,13 @@ class ActivityIngest(DeviceAuthMixin, APIView):
             # Store validation results for logging
             log_data['_context_warnings'] = warnings
 
-    def _process_single_log(self, log_data, user):
-        """Process and create a single activity log entry for a specific user"""
+    def _process_single_log(self, log_data, membership):
+        """Process and create a single activity log entry for a specific membership"""
         start_time = _parse_iso(log_data["start_time"])
         end_time = _parse_iso(log_data["end_time"])
 
         activity = ActivityLog.objects.create(
-            user=user,
+            membership=membership,
             app_name=log_data["app_name"],
             window_title=log_data.get("window_title", ""),
             start_time=start_time,
@@ -329,7 +369,12 @@ class DataQualityMetricsView(DeviceAuthMixin, APIView):
         """
         try:
             device = self._get_device_from_request(request)
-            org = device.user.org
+            org = device.membership.organization if device.membership else None
+            if not org:
+                return Response(
+                    {"error": "Device not associated with an organization"},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
             org_id = request.query_params.get('org_id', org.id)
             
             # Verify user has access to this org
@@ -420,7 +465,12 @@ class DataQualityTrendView(DeviceAuthMixin, APIView):
         """
         try:
             device = self._get_device_from_request(request)
-            org = device.user.org
+            org = device.membership.organization if device.membership else None
+            if not org:
+                return Response(
+                    {"error": "Device not associated with an organization"},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
             org_id = request.query_params.get('org_id', org.id)
             
             # Verify user has access to this org
