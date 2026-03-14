@@ -386,22 +386,42 @@ def get_app_comparison_data(request):
     # Convert to JSON-serializable format
     data = []
     for app in app_comparison:
-        data.append({
-            'app_name': app['app_name'],
-            'current': {
-                'count': app['current']['count'],
-                'total_duration': app['current']['total_duration']
-            },
-            'previous': {
-                'count': app['previous']['count'],
-                'total_duration': app['previous']['total_duration']
-            } if period != 'today' else {'count': 0, 'total_duration': 0},
-            'count_change': app.get('count_change', 0),
-            'count_change_pct': app.get('count_change_pct', 0),
-            'duration_change': app.get('duration_change', 0),
-            'duration_change_pct': app.get('duration_change_pct', 0),
-            'trend': app.get('trend', 'same')
-        })
+        if period == 'today':
+            # For today, app_comparison is the current_stats list directly
+            data.append({
+                'app_name': app['app_name'],
+                'current': {
+                    'count': app['count'],
+                    'total_duration': app['total_duration']
+                },
+                'previous': {
+                    'count': 0,
+                    'total_duration': 0
+                },
+                'count_change': 0,
+                'count_change_pct': 0,
+                'duration_change': 0,
+                'duration_change_pct': 0,
+                'trend': 'same'
+            })
+        else:
+            # For other periods, app_comparison has the full structure
+            data.append({
+                'app_name': app['app_name'],
+                'current': {
+                    'count': app['current']['count'],
+                    'total_duration': app['current']['total_duration']
+                },
+                'previous': {
+                    'count': app['previous']['count'],
+                    'total_duration': app['previous']['total_duration']
+                },
+                'count_change': app['count_change'],
+                'count_change_pct': app['count_change_pct'],
+                'duration_change': app['duration_change'],
+                'duration_change_pct': app['duration_change_pct'],
+                'trend': app['trend']
+            })
 
     return JsonResponse({'app_comparison': data, 'period': period})
 
