@@ -329,9 +329,10 @@ class ActivityIngest(DeviceAuthMixin, APIView):
         if warnings:
             logger.warning(f"Context warnings for log {activity.id}: {warnings}")
         
+        quality_str = f"{activity.data_quality_score:.2f}" if activity.data_quality_score is not None else "N/A"
         logger.debug(
             f"Created ActivityLog {activity.id}: {activity.app_name} "
-            f"({activity.duration:.1f}s, quality: {activity.data_quality_score:.2f if activity.data_quality_score is not None else 'N/A'})"
+            f"({activity.duration:.1f}s, quality: {quality_str})"
         )
         return activity
 

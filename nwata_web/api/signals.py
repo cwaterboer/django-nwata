@@ -141,13 +141,23 @@ def update_data_quality_metrics(sender, instance, created, **kwargs):
     from django.db import transaction, connection
     from django.db import OperationalError
     
-    # Only process if quality score was computed and we have an org
-    if not instance.data_quality_score or not hasattr(instance, 'user') or not instance.user.org:
+    # Only process if quality score was computed and we can resolve an org
+    if instance.data_quality_score is None:
+        return
+
+    # Support both legacy `user` org linkage and new `membership` linkage.
+    # Some logs may have `user=None` but still have `membership` set.
+    org = None
+    if hasattr(instance, 'user') and instance.user and getattr(instance.user, 'org', None):
+        org = instance.user.org
+    elif hasattr(instance, 'membership') and instance.membership and getattr(instance.membership, 'organization', None):
+        org = instance.membership.organization
+
+    if not org:
         return
 
     # Get the date for this activity (its end_time date)
     log_date = instance.end_time.date()
-    org = instance.user.org
 
     try:
         # Use atomic transaction to ensure consistency
