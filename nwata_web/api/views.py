@@ -26,7 +26,9 @@ def _parse_iso(ts: str) -> datetime:
 def _issue_device_token(device):
     device.token = secrets.token_urlsafe(48)
     device.token_expires_at = timezone.now() + timedelta(days=TOKEN_TTL_DAYS)
-    device.save(update_fields=["token", "token_expires_at", "last_seen"])
+    # Keep last_seen_at in sync for auditing
+    device.last_seen_at = timezone.now()
+    device.save(update_fields=["token", "token_expires_at", "last_seen_at"])
     return device.token, device.token_expires_at
 
 

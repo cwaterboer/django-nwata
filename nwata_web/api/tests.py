@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import Organization, User, ActivityLog, Gamification, Device
+from .models import Organization, User, ActivityLog, Gamification, Device, Membership
 from datetime import datetime, timedelta
 
 
@@ -42,6 +42,37 @@ class ActivityLogModelTest(TestCase):
         
         self.assertEqual(activity.duration, 300.0)  # 5 minutes = 300 seconds
         self.assertEqual(activity.app_name, "Chrome")
+
+
+class DeviceRegisterAPITest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = '/api/device/register/'
+        self.org = Organization.objects.create(name="Test Org", subdomain="test")
+        self.user = User.objects.create(email="test@example.com", org=self.org)
+
+        # Create auth user for device registration
+        from django.contrib.auth.models import User as AuthUser
+        self.auth_user = AuthUser.objects.create_user(email="test@example.com", username="test@example.com", password="test")
+
+    def test_device_register_creates_membership_and_device(self):
+        response = self.client.post(self.url, {
+            "email": "test@example.com",
+            "password": "test",
+            "device_name": "Test Agent"
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('token', response.data)
+        self.assertIn('organization', response.data)
+
+        # Ensure membership created and active
+        membership = Membership.objects.get(auth_user=self.auth_user)
+        self.assertEqual(membership.status, 'active')
+        self.assertEqual(membership.organization, self.org)
+
+        # Device should be linked to membership
+        self.assertTrue(Device.objects.filter(membership=membership).exists())
 
 
 class ActivityIngestAPITest(TestCase):
