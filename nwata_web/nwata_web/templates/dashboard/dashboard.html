@@ -282,11 +282,20 @@
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     transition: transform 0.2s, box-shadow 0.2s;
+    border-left: 4px solid #ffc107;
 }
 
 .comparison-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.comparison-card.trend-up {
+    border-left-color: #28a745;
+}
+
+.comparison-card.trend-down {
+    border-left-color: #dc3545;
 }
 
 .comparison-card .app-header {
@@ -302,6 +311,22 @@
     color: #2c3e50;
 }
 
+.trend-indicator .material-icons {
+    font-size: 20px;
+}
+
+.trend-up {
+    color: #28a745;
+}
+
+.trend-down {
+    color: #dc3545;
+}
+
+.trend-flat {
+    color: #ffc107;
+}
+
 .comparison-card .current-stats {
     margin-bottom: 15px;
     padding: 10px;
@@ -309,21 +334,54 @@
     border-radius: 6px;
 }
 
-.comparison-card .change-metric {
-    text-align: center;
+.comparison-card .current-stats div:first-child {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 5px;
 }
 
-.comparison-card .change-metric div:first-child {
+.comparison-card .current-stats div:last-child {
+    display: flex;
+    justify-content: space-between;
+}
+
+.comparison-card .comparison-stats {
+    margin-top: 15px;
+}
+
+.comparison-label {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.comparison-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.metric-label {
     font-size: 0.8em;
     color: #666;
     margin-bottom: 2px;
 }
 
-.comparison-card .change-metric div:last-child {
+.metric-value {
     font-weight: 600;
 }
 
-/* Chart Controls */
+.change-positive {
+    color: #28a745;
+}
+
+.change-negative {
+    color: #dc3545;
+}
+
+.change-neutral {
+    color: #666;
+}
 .view-btn {
     transition: all 0.2s ease;
 }
@@ -477,8 +535,8 @@ function createChart() {
     }
 
     // Get chart data from template variables
-    const appData = {{ app_comparison_json|safe }};
-    const period = '{{ current_period }}';
+    const appData = JSON.parse('{{ app_comparison_json|escapejs }}');
+    const period = '{{ current_period|escapejs }}';
 
     // Filter data based on selected apps
     const filteredData = appData.filter(app => selectedApps.includes(app.app_name));
@@ -574,8 +632,13 @@ function createChart() {
 
     // Special config for doughnut chart
     if (currentChartType === 'doughnut') {
-        config.options.plugins.legend.position = 'right';
-        delete config.options.scales;
+        if (config.options.plugins) {
+            config.options.plugins.legend = config.options.plugins.legend || {};
+            config.options.plugins.legend.position = 'right';
+        }
+        if (config.options.scales) {
+            delete config.options.scales;
+        }
     }
 
     appUsageChart = new Chart(ctx, config);
@@ -776,18 +839,18 @@ function switchCanvas(canvasId) {
         <!-- Comparison Grid (Cards View) -->
         <div id="cards-container" class="comparison-grid" style="display: none;">
             {% for app in app_comparison %}
-            <div class="comparison-card" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid {% if app.trend == 'up' %}#28a745{% elif app.trend == 'down' %}#dc3545{% else %}#ffc107{% endif %};">
+            <div class="comparison-card trend-{{ app.trend }}">
 
                 <!-- App Header -->
-                <div class="app-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0; font-size: 1.1em; color: #2c3e50;">{{ app.app_name }}</h3>
+                <div class="app-header">
+                    <h3>{{ app.app_name }}</h3>
                     <div class="trend-indicator">
                         {% if app.trend == 'up' %}
-                            <span class="material-icons" style="color: #28a745; font-size: 20px;">trending_up</span>
+                            <span class="material-icons trend-up">trending_up</span>
                         {% elif app.trend == 'down' %}
-                            <span class="material-icons" style="color: #dc3545; font-size: 20px;">trending_down</span>
+                            <span class="material-icons trend-down">trending_down</span>
                         {% else %}
-                            <span class="material-icons" style="color: #ffc107; font-size: 20px;">trending_flat</span>
+                            <span class="material-icons trend-flat">trending_flat</span>
                         {% endif %}
                     </div>
                 </div>
@@ -804,18 +867,18 @@ function switchCanvas(canvasId) {
                 <!-- Comparison -->
                 {% if current_period != 'today' %}
                 <div class="comparison-stats">
-                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">vs Previous Period</div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="comparison-label">vs Previous Period</div>
+                    <div class="comparison-metrics">
                         <div class="change-metric">
-                            <div style="font-size: 0.8em; color: #666;">Activities</div>
-                            <div style="font-weight: 600; color: {% if app.count_change > 0 %}#28a745{% elif app.count_change < 0 %}#dc3545{% else %}#666{% endif %}">
+                            <div class="metric-label">Activities</div>
+                            <div class="metric-value change-{% if app.count_change > 0 %}positive{% elif app.count_change < 0 %}negative{% else %}neutral{% endif %}">
                                 {% if app.count_change > 0 %}+{% endif %}{{ app.count_change }}
                                 ({{ app.count_change_pct }}%)
                             </div>
                         </div>
                         <div class="change-metric">
-                            <div style="font-size: 0.8em; color: #666;">Time</div>
-                            <div style="font-weight: 600; color: {% if app.duration_change > 0 %}#28a745{% elif app.duration_change < 0 %}#dc3545{% else %}#666{% endif %}">
+                            <div class="metric-label">Time</div>
+                            <div class="metric-value change-{% if app.duration_change > 0 %}positive{% elif app.duration_change < 0 %}negative{% else %}neutral{% endif %}">
                                 {% if app.duration_change > 0 %}+{% endif %}{{ app.duration_change }}m
                                 ({{ app.duration_change_pct }}%)
                             </div>
