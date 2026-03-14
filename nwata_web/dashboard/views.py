@@ -5,7 +5,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.db.models import Q, F, ExpressionWrapper, DurationField, Count, Sum, Avg
 from django.db.models.functions import TruncHour, ExtractHour
-from api.models import ActivityLog, Gamification, User, Organization, Membership
+from api.models import ActivityLog, Gamification, User, Organization, Membership, Device
 from datetime import datetime, timedelta
 from collections import defaultdict
 import json
