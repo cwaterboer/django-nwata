@@ -144,9 +144,27 @@ button, .btn {
     color: white;
 }
 
-.btn-secondary:hover {
-    background: #5a6268;
-    transform: translateY(-2px);
+.value-container {
+    flex: 1;
+    text-align: right;
+}
+
+.edit-group {
+    text-align: left;
+}
+
+.edit-group input {
+    width: 100%;
+    padding: 8px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+.edit-group input:focus {
+    outline: none;
+    border-color: #667eea;
 }
 </style>
 {% endblock %}
@@ -173,107 +191,137 @@ button, .btn {
     </div>
     {% endif %}
 
-    <!-- Current Info Card -->
-    <div class="info-card">
-        <div class="info-row">
-            <span class="info-label">First Name:</span>
-            <span class="info-value">{{ user.first_name|default:"Not set" }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Last Name:</span>
-            <span class="info-value">{{ user.last_name|default:"Not set" }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Username:</span>
-            <span class="info-value">{{ user.username }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Email:</span>
-            <span class="info-value">{{ user.email }}</span>
-        </div>
-        {% if org %}
-        <div class="info-row">
-            <span class="info-label">Organization:</span>
-            <span class="info-value">{{ org.name }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Subdomain:</span>
-            <span class="info-value">{{ org.subdomain }}</span>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Update Profile Form -->
-    <div class="form-section">
-        <div class="section-subtitle">Update Profile</div>
-        <form method="post">
-            {% csrf_token %}
-            
-            <div class="form-group">
-                <label for="id_first_name">First Name</label>
-                {{ form.first_name }}
-                {% if form.first_name.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.first_name.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+    <!-- Profile Form -->
+    <form method="post" id="profile-form">
+        {% csrf_token %}
+        
+        <!-- Info Card / Edit Form -->
+        <div class="info-card">
+            <div class="info-row">
+                <span class="info-label">First Name:</span>
+                <div class="value-container">
+                    <span class="info-value display-value">{{ user.first_name|default:"Not set" }}</span>
+                    <div class="edit-group" style="display:none;">
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.first_name.errors %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-
-            <div class="form-group">
-                <label for="id_last_name">Last Name</label>
-                {{ form.last_name }}
-                {% if form.last_name.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.last_name.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+            <div class="info-row">
+                <span class="info-label">Last Name:</span>
+                <div class="value-container">
+                    <span class="info-value display-value">{{ user.last_name|default:"Not set" }}</span>
+                    <div class="edit-group" style="display:none;">
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.last_name.errors %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-
-            <div class="form-group">
-                <label for="id_username">Username</label>
-                {{ form.username }}
-                {% if form.username.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.username.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+            <div class="info-row">
+                <span class="info-label">Username:</span>
+                <div class="value-container">
+                    <span class="info-value display-value">{{ user.username }}</span>
+                    <div class="edit-group" style="display:none;">
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.username.errors %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-
-            <div class="form-group">
-                <label for="id_email">Email</label>
-                {{ form.email }}
-                {% if form.email.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.email.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+            <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value">{{ user.email }}</span>
             </div>
-
-            <div class="form-group">
-                <label for="id_organization_name">Organization Name</label>
-                {{ form.organization_name }}
-                {% if form.organization_name.errors %}
-                    <ul class="errorlist">
-                        {% for error in form.organization_name.errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+            {% if org %}
+            <div class="info-row">
+                <span class="info-label">Organization:</span>
+                <div class="value-container">
+                    <span class="info-value display-value">{{ org.name }}</span>
+                    <div class="edit-group" style="display:none;">
+                        {{ form.organization_name }}
+                        {% if form.organization_name.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.organization_name.errors %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-
-            <div class="btn-group">
-                <button type="submit" class="btn-primary">Save Changes</button>
-                <a href="{% url 'change_password' %}" class="btn btn-secondary">Change Password</a>
+            <div class="info-row">
+                <span class="info-label">Subdomain:</span>
+                <span class="info-value">{{ org.subdomain }}</span>
             </div>
-        </form>
-    </div>
+            {% endif %}
+        </div>
+
+        <div class="btn-group">
+            <button type="button" id="edit-btn" class="btn-primary">Edit Profile</button>
+            <button type="submit" id="save-btn" class="btn-primary" style="display:none;">Save Changes</button>
+            <a href="{% url 'change_password' %}" class="btn btn-secondary">Change Password</a>
+            <button type="button" id="cancel-btn" class="btn-secondary" style="display:none;">Cancel</button>
+        </div>
+    </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editBtn = document.getElementById('edit-btn');
+    const saveBtn = document.getElementById('save-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const displayValues = document.querySelectorAll('.display-value');
+    const editGroups = document.querySelectorAll('.edit-group');
+    const form = document.getElementById('profile-form');
+
+    // Store original values for cancel
+    let originalValues = {};
+    editGroups.forEach(group => {
+        const input = group.querySelector('input');
+        if (input) {
+            originalValues[input.name] = input.value;
+        }
+    });
+
+    editBtn.addEventListener('click', function() {
+        displayValues.forEach(span => span.style.display = 'none');
+        editGroups.forEach(group => group.style.display = 'block');
+        editBtn.style.display = 'none';
+        saveBtn.style.display = 'inline-block';
+        cancelBtn.style.display = 'inline-block';
+    });
+
+    cancelBtn.addEventListener('click', function() {
+        displayValues.forEach(span => span.style.display = 'inline');
+        editGroups.forEach(group => group.style.display = 'none');
+        editBtn.style.display = 'inline-block';
+        saveBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+        // Reset values
+        editGroups.forEach(group => {
+            const input = group.querySelector('input');
+            if (input && originalValues[input.name] !== undefined) {
+                input.value = originalValues[input.name];
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
