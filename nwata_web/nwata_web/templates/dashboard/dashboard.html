@@ -437,6 +437,8 @@
 let appUsageChart = null;
 let currentChartType = 'bar';
 let selectedApps = [];
+let currentAppData = JSON.parse('{{ app_comparison_json|escapejs }}');
+let currentPeriod = '{{ current_period|escapejs }}';
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -455,6 +457,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!selector.contains(e.target)) {
             dropdown.style.display = 'none';
         }
+    });
+
+    // Period selector change handler
+    document.getElementById('period-select').addEventListener('change', function() {
+        loadAppComparisonData(this.value);
     });
 });
 
@@ -476,6 +483,7 @@ function switchView(viewType) {
         cardsContainer.style.display = 'block';
         chartBtn.classList.remove('active');
         cardsBtn.classList.add('active');
+        updateCardsView();
     }
 }
 
@@ -525,6 +533,125 @@ function updateChart() {
     createChart();
 }
 
+// Load app comparison data for a specific period via AJAX
+function loadAppComparisonData(period) {
+    fetch(`/dashboard/api/app-comparison/?period=${period}`)
+        .then(response => response.json())
+        .then(data => {
+            currentAppData = data.app_comparison;
+            currentPeriod = data.period;
+            
+            // Update app selector checkboxes
+            updateAppSelectorCheckboxes();
+            
+            // Recreate chart with new data
+            createChart();
+            
+            // Update cards view if active
+            if (document.getElementById('cards-container').style.display !== 'none') {
+                updateCardsView();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading app comparison data:', error);
+        });
+}
+
+// Update app selector checkboxes based on new data
+function updateAppSelectorCheckboxes() {
+    const dropdown = document.getElementById('app-selector-dropdown');
+    
+    // Clear existing checkboxes (except select all)
+    const existingCheckboxes = dropdown.querySelectorAll('.app-checkbox');
+    existingCheckboxes.forEach(cb => cb.parentElement.remove());
+    
+    // Add new checkboxes
+    currentAppData.forEach(app => {
+        const div = document.createElement('div');
+        div.style.padding = '8px 10px';
+        div.style.borderBottom = '1px solid #f8f9fa';
+        
+        const label = document.createElement('label');
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.gap = '8px';
+        label.style.cursor = 'pointer';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'app-checkbox';
+        checkbox.value = app.app_name;
+        checkbox.checked = selectedApps.includes(app.app_name);
+        checkbox.onchange = updateChart;
+        
+        const span = document.createElement('span');
+        span.textContent = app.app_name;
+        
+        label.appendChild(checkbox);
+        label.appendChild(span);
+        div.appendChild(label);
+        dropdown.appendChild(div);
+    });
+    
+    // Update selected apps
+    updateSelectedApps();
+}
+
+// Update cards view with new data
+function updateCardsView() {
+    const cardsContainer = document.getElementById('cards-container');
+    cardsContainer.innerHTML = '';
+    
+    if (currentAppData.length === 0) {
+        cardsContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #666;">No application data available for the selected period. Start tracking to see insights!</div>';
+        return;
+    }
+    
+    currentAppData.forEach(app => {
+        const card = document.createElement('div');
+        card.className = `comparison-card trend-${app.trend}`;
+        
+        card.innerHTML = `
+            <div class="app-header">
+                <h3>${app.app_name}</h3>
+                <div class="trend-indicator">
+                    ${app.trend === 'up' ? '<span class="material-icons trend-up">trending_up</span>' : 
+                      app.trend === 'down' ? '<span class="material-icons trend-down">trending_down</span>' : 
+                      '<span class="material-icons trend-flat">trending_flat</span>'}
+                </div>
+            </div>
+            <div class="current-stats" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Current Period</div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>${app.current.count} activities</span>
+                    <span>${app.current.total_duration}m total</span>
+                </div>
+            </div>
+            ${currentPeriod !== 'today' ? `
+            <div class="comparison-stats">
+                <div class="comparison-label">vs Previous Period</div>
+                <div class="comparison-metrics">
+                    <div class="change-metric">
+                        <div class="metric-label">Activities</div>
+                        <div class="metric-value change-${app.count_change > 0 ? 'positive' : app.count_change < 0 ? 'negative' : 'neutral'}">
+                            ${app.count_change > 0 ? '+' : ''}${app.count_change} (${app.count_change_pct}%)
+                        </div>
+                    </div>
+                    <div class="change-metric">
+                        <div class="metric-label">Time</div>
+                        <div class="metric-value change-${app.duration_change > 0 ? 'positive' : app.duration_change < 0 ? 'negative' : 'neutral'}">
+                            ${app.duration_change > 0 ? '+' : ''}${app.duration_change}m (${app.duration_change_pct}%)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+        `;
+        
+        cardsContainer.appendChild(card);
+    });
+}
+
 // Create or update the chart
 function createChart() {
     const ctx = document.getElementById('appUsageChart').getContext('2d');
@@ -534,9 +661,9 @@ function createChart() {
         appUsageChart.destroy();
     }
 
-    // Get chart data from template variables
-    const appData = JSON.parse('{{ app_comparison_json|escapejs }}');
-    const period = '{{ current_period|escapejs }}';
+    // Use currentAppData instead of parsing from template
+    const appData = currentAppData;
+    const period = currentPeriod;
 
     // Filter data based on selected apps
     const filteredData = appData.filter(app => selectedApps.includes(app.app_name));
@@ -749,7 +876,7 @@ function switchCanvas(canvasId) {
             </div>
 
             <div class="chart-settings" style="display: flex; gap: 10px; align-items: center;">
-                <select id="period-select" onchange="window.location.href='?period=' + this.value" style="padding: 8px 12px; border: 1px solid #e9ecef; border-radius: 6px; background: white;">
+                <select id="period-select" style="padding: 8px 12px; border: 1px solid #e9ecef; border-radius: 6px; background: white;">
                     <option value="today" {% if current_period == 'today' %}selected{% endif %}>Today vs Yesterday</option>
                     <option value="week" {% if current_period == 'week' %}selected{% endif %}>This Week vs Last Week</option>
                     <option value="month" {% if current_period == 'month' %}selected{% endif %}>This Month vs Last Month</option>

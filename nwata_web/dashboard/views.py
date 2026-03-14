@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
@@ -342,6 +343,67 @@ def dashboard(request):
     }
 
     return render(request, 'dashboard/dashboard.html', context)
+
+
+@login_required
+def get_app_comparison_data(request):
+    """AJAX endpoint to get app comparison data for a specific period"""
+    now = datetime.now()
+    today = now.date()
+    week_start = today - timedelta(days=today.weekday())
+
+    # Get current user's organization
+    org = None
+    try:
+        nwata_user = User.objects.get(email=request.user.email)
+        org = nwata_user.org
+    except User.DoesNotExist:
+        try:
+            membership = Membership.objects.select_related('organization').get(
+                auth_user=request.user,
+                status='active'
+            )
+            org = membership.organization
+        except Membership.DoesNotExist:
+            pass
+
+    if not org:
+        return JsonResponse({'error': 'No organization found'}, status=403)
+
+    # Filter queries by organization
+    org_filter = Q(user__org=org) | Q(membership__organization=org)
+
+    # Get period from request
+    period = request.GET.get('period', 'today')
+    period_dates = get_period_dates(period, today)
+
+    app_stats = get_app_usage_stats(org_filter, period_dates['current'])
+    app_stats_previous = get_app_usage_stats(org_filter, period_dates['previous']) if period != 'today' else []
+
+    # Create comparison data
+    app_comparison = create_app_comparison(app_stats, app_stats_previous, period)
+
+    # Convert to JSON-serializable format
+    data = []
+    for app in app_comparison:
+        data.append({
+            'app_name': app['app_name'],
+            'current': {
+                'count': app['current']['count'],
+                'total_duration': app['current']['total_duration']
+            },
+            'previous': {
+                'count': app['previous']['count'],
+                'total_duration': app['previous']['total_duration']
+            } if period != 'today' else {'count': 0, 'total_duration': 0},
+            'count_change': app.get('count_change', 0),
+            'count_change_pct': app.get('count_change_pct', 0),
+            'duration_change': app.get('duration_change', 0),
+            'duration_change_pct': app.get('duration_change_pct', 0),
+            'trend': app.get('trend', 'same')
+        })
+
+    return JsonResponse({'app_comparison': data, 'period': period})
 
 
 @login_required
