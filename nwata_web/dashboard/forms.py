@@ -48,13 +48,24 @@ class PersonalSignUpForm(UserCreationForm):
                 current_state='active'
             )
             
-            # Create Nwata user linked to organization
+            # Create Nwata user linked to organization (legacy model)
             nwata_user = User.objects.create(
                 email=email,
                 org=org
             )
+
+            # Create Membership record (new multi-tenant model)
+            from api.models import Membership
+            Membership.objects.create(
+                auth_user=auth_user,
+                organization=org,
+                role='owner',
+                license_type='individual',
+                email_used=email,
+                status='active',
+            )
             
-            # Create UserOrgRole with owner role
+            # Create UserOrgRole with owner role (legacy permission model)
             owner_role = Role.objects.get(name='owner')
             UserOrgRole.objects.create(
                 user=nwata_user,
@@ -142,13 +153,24 @@ class TeamSignUpForm(UserCreationForm):
                 current_state='active'
             )
             
-            # Create Nwata user linked to organization
+            # Create Nwata user linked to organization (legacy model)
             nwata_user = User.objects.create(
                 email=self.cleaned_data['email'],
                 org=org
             )
+
+            # Create Membership record (new multi-tenant model)
+            from api.models import Membership
+            Membership.objects.create(
+                auth_user=auth_user,
+                organization=org,
+                role='owner',
+                license_type='team',
+                email_used=self.cleaned_data['email'],
+                status='active',
+            )
             
-            # Create UserOrgRole with owner role
+            # Create UserOrgRole with owner role (legacy permission model)
             owner_role = Role.objects.get(name='owner')
             UserOrgRole.objects.create(
                 user=nwata_user,
