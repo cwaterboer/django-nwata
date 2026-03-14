@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
-from django.db.models import Count, Sum, Avg, F, ExpressionWrapper, DurationField
+from django.db.models import Q
 from django.db.models.functions import TruncHour, ExtractHour
 from api.models import ActivityLog, Gamification, User, Organization, Membership
 from datetime import datetime, timedelta
@@ -60,9 +60,9 @@ def get_period_dates(period, reference_date):
 def get_app_usage_stats(org_filter, date_range):
     """Get app usage statistics for a given date range"""
     app_activities = ActivityLog.objects.filter(
+        org_filter,
         created_at__date__gte=date_range['start'],
-        created_at__date__lte=date_range['end'],
-        **org_filter
+        created_at__date__lte=date_range['end']
     ).exclude(
         app_name__isnull=True
     ).exclude(
@@ -144,16 +144,28 @@ def dashboard(request):
     today = now.date()
     week_start = today - timedelta(days=today.weekday())
 
-    # Get current user's organization
+    # Get current user's organization - support both legacy User and new Membership
+    org = None
     try:
+        # Try legacy User first
         nwata_user = User.objects.get(email=request.user.email)
         org = nwata_user.org
     except User.DoesNotExist:
-        # If user doesn't have a Nwata User record, they can't see any data
-        org = None
+        # Check if user has active membership
+        try:
+            membership = Membership.objects.select_related('organization').get(
+                auth_user=request.user,
+                status='active'
+            )
+            org = membership.organization
+        except Membership.DoesNotExist:
+            pass
 
-    # Filter all queries by organization
-    org_filter = {'user__org': org} if org else {'user__org__isnull': True}
+    # Filter all queries by organization - support both legacy user__org and membership__organization
+    if org:
+        org_filter = Q(user__org=org) | Q(membership__organization=org)
+    else:
+        org_filter = Q(user__org__isnull=True) & Q(membership__organization__isnull=True)
 
     # Active users today (users with activity today in this org)
     active_users_today = User.objects.filter(
@@ -162,7 +174,7 @@ def dashboard(request):
     ).distinct().count() if org else 0
 
     # Get recent activity logs (last 24 hours) with duration calculation - ONLY for this org
-    recent_activities = ActivityLog.objects.filter(**org_filter).select_related('user', 'user__org').annotate(
+    recent_activities = ActivityLog.objects.filter(org_filter).select_related('user', 'membership__auth_user').annotate(
         duration_minutes=ExpressionWrapper(
             F('end_time') - F('start_time'),
             output_field=DurationField()
@@ -172,6 +184,8 @@ def dashboard(request):
     # Calculate durations for recent activities
     for activity in recent_activities:
         activity.duration_display = round(activity.duration_minutes.total_seconds() / 60, 1)
+        # Get user email from either legacy user or membership
+        activity.user_email = activity.user.email if activity.user else (activity.membership.auth_user.email if activity.membership else "Unknown")
         # Parse context if available for display
         if activity.context:
             activity.typing_count = activity.context.get('typing_count', 0)
@@ -188,8 +202,8 @@ def dashboard(request):
 
     # Today's activities with proper duration calculation - filtered by org
     today_activities = ActivityLog.objects.filter(
-        created_at__date=today,
-        **org_filter
+        org_filter,
+        created_at__date=today
     ).annotate(
         duration_minutes=ExpressionWrapper(
             F('end_time') - F('start_time'),
@@ -233,8 +247,8 @@ def dashboard(request):
     session_threshold = timedelta(minutes=5)
 
     sorted_activities = ActivityLog.objects.filter(
-        created_at__date=today,
-        **org_filter
+        org_filter,
+        created_at__date=today
     ).order_by('start_time')
 
     for activity in sorted_activities:
@@ -277,7 +291,7 @@ def dashboard(request):
     ).select_related('org') if org else []
 
     # Activity categories (if any) - filtered by org
-    category_stats = ActivityLog.objects.filter(**org_filter).values('category').annotate(
+    category_stats = ActivityLog.objects.filter(org_filter).values('category').annotate(
         count=Count('id'),
         total_duration=Sum(
             ExpressionWrapper(
@@ -297,9 +311,9 @@ def dashboard(request):
 
     # Weekly streak (count of days with activity this week) - filtered by org
     week_activity_days = ActivityLog.objects.filter(
+        org_filter,
         created_at__date__gte=week_start,
-        created_at__date__lte=today,
-        **org_filter
+        created_at__date__lte=today
     ).values('created_at__date').distinct().count()
     weekly_streak = week_activity_days
 
@@ -323,7 +337,7 @@ def dashboard(request):
         'category_stats': category_stats,
         'user_stats': user_stats,
         'total_users': User.objects.filter(org=org).count() if org else 0,
-        'total_activities': ActivityLog.objects.filter(**org_filter).count(),
+        'total_activities': ActivityLog.objects.filter(org_filter).count(),
         'last_updated': now,
     }
 
