@@ -1,7 +1,27 @@
 <!-- Members Tab -->
 {% if active_tab == 'members' %}
 <div class="tab-content">
-    {% if not org.is_personal %}
+    {% if org.is_personal %}
+    <!-- Personal Account Message -->
+    <div class="settings-card">
+        <div class="settings-card-title">👤 Personal Account</div>
+        <div class="settings-card-subtitle">Membership features are not available for individual accounts</div>
+        
+        <div style="text-align: center; padding: 40px 20px; color: #666;">
+            <div style="font-size: 3em; margin-bottom: 20px;">🏠</div>
+            <h3 style="color: #2c3e50; margin-bottom: 15px;">Individual Account</h3>
+            <p style="font-size: 1.1em; line-height: 1.6;">
+                You're using a personal account. Team collaboration features like member management, 
+                invitations, and role assignments are only available for team organizations.
+            </p>
+            <p style="margin-top: 20px;">
+                <a href="{% url 'org_settings' %}?tab=general" class="btn btn-primary">
+                    Manage Organization Settings
+                </a>
+            </p>
+        </div>
+    </div>
+    {% else %}
     <!-- Invite New Member Card -->
     <div class="settings-card">
         <div class="settings-card-title">✉️ Invite New Member</div>
