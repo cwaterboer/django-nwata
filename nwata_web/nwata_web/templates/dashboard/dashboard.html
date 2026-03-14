@@ -735,57 +735,6 @@ function switchCanvas(canvasId) {
     <div class="canvas-area">
         <div class="section-title">Application Usage Comparison</div>
 
-        <!-- Period Selector -->
-        <div class="period-selector" style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-            <label style="font-weight: 600; color: #2c3e50;">Compare:</label>
-            <a href="?period=today" class="period-btn {% if current_period == 'today' %}active{% endif %}"
-               style="padding: 8px 16px; border-radius: 6px; text-decoration: none; background: #f8f9fa; color: #666; transition: all 0.2s;">
-                Today vs Yesterday
-            </a>
-            <a href="?period=week" class="period-btn {% if current_period == 'week' %}active{% endif %}"
-               style="padding: 8px 16px; border-radius: 6px; text-decoration: none; background: #f8f9fa; color: #666; transition: all 0.2s;">
-                This Week vs Last Week
-            </a>
-            <a href="?period=month" class="period-btn {% if current_period == 'month' %}active{% endif %}"
-               style="padding: 8px 16px; border-radius: 6px; text-decoration: none; background: #f8f9fa; color: #666; transition: all 0.2s;">
-                This Month vs Last Month
-            </a>
-            <a href="?period=quarter" class="period-btn {% if current_period == 'quarter' %}active{% endif %}"
-               style="padding: 8px 16px; border-radius: 6px; text-decoration: none; background: #f8f9fa; color: #666; transition: all 0.2s;">
-                This Quarter vs Last Quarter
-            </a>
-            <a href="?period=year" class="period-btn {% if current_period == 'year' %}active{% endif %}"
-               style="padding: 8px 16px; border-radius: 6px; text-decoration: none; background: #f8f9fa; color: #666; transition: all 0.2s;">
-                This Year vs Last Year
-            </a>
-        </div>
-
-        <!-- Period Info -->
-        <div class="period-info" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div>
-                    <h4 style="margin: 0 0 8px 0; color: #ff6600; font-size: 1.1em;">Current Period</h4>
-                    <p style="margin: 0; color: #666;">
-                        {{ period_dates.current.start|date:"M j, Y" }}
-                        {% if period_dates.current.start != period_dates.current.end %}
-                            - {{ period_dates.current.end|date:"M j, Y" }}
-                        {% endif %}
-                    </p>
-                </div>
-                {% if current_period != 'today' %}
-                <div>
-                    <h4 style="margin: 0 0 8px 0; color: #666; font-size: 1.1em;">Previous Period</h4>
-                    <p style="margin: 0; color: #666;">
-                        {{ period_dates.previous.start|date:"M j, Y" }}
-                        {% if period_dates.previous.start != period_dates.previous.end %}
-                            - {{ period_dates.previous.end|date:"M j, Y" }}
-                        {% endif %}
-                    </p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
         <!-- Chart Controls -->
         <div class="chart-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
             <div class="view-toggle" style="display: flex; gap: 10px;">
@@ -800,6 +749,14 @@ function switchCanvas(canvasId) {
             </div>
 
             <div class="chart-settings" style="display: flex; gap: 10px; align-items: center;">
+                <select id="period-select" onchange="window.location.href='?period=' + this.value" style="padding: 8px 12px; border: 1px solid #e9ecef; border-radius: 6px; background: white;">
+                    <option value="today" {% if current_period == 'today' %}selected{% endif %}>Today vs Yesterday</option>
+                    <option value="week" {% if current_period == 'week' %}selected{% endif %}>This Week vs Last Week</option>
+                    <option value="month" {% if current_period == 'month' %}selected{% endif %}>This Month vs Last Month</option>
+                    <option value="quarter" {% if current_period == 'quarter' %}selected{% endif %}>This Quarter vs Last Quarter</option>
+                    <option value="year" {% if current_period == 'year' %}selected{% endif %}>This Year vs Last Year</option>
+                </select>
+
                 <select id="chart-type" onchange="changeChartType()" style="padding: 8px 12px; border: 1px solid #e9ecef; border-radius: 6px; background: white;">
                     <option value="bar">Bar Chart</option>
                     <option value="doughnut">Donut Chart</option>

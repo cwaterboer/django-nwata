@@ -167,11 +167,11 @@ def dashboard(request):
     else:
         org_filter = Q(user__org__isnull=True) & Q(membership__organization__isnull=True)
 
-    # Active users today (users with activity today in this org)
-    active_users_today = User.objects.filter(
-        org=org,
-        activity_logs__created_at__date=today
-    ).distinct().count() if org else 0
+    # Active users today (users with devices active today in this org)
+    active_users_today = Device.objects.filter(
+        membership__organization=org,
+        last_seen_at__date=today
+    ).values('membership__auth_user').distinct().count() if org else 0
 
     # Get recent activity logs (last 24 hours) with duration calculation - ONLY for this org
     recent_activities = ActivityLog.objects.filter(org_filter).select_related('user', 'membership__auth_user').annotate(
