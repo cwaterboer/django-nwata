@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
-from django.db.models import Q
+from django.db.models import Q, F, ExpressionWrapper, DurationField, Count, Sum, Avg
 from django.db.models.functions import TruncHour, ExtractHour
 from api.models import ActivityLog, Gamification, User, Organization, Membership
 from datetime import datetime, timedelta
