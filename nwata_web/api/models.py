@@ -276,7 +276,8 @@ class ActivityLog(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.app_name} - {self.user.email} ({self.start_time})"
+        user_email = self.user.email if self.user else (self.membership.auth_user.email if self.membership else "Unknown")
+        return f"{self.app_name} - {user_email} ({self.start_time})"
 
     @property
     def duration(self):

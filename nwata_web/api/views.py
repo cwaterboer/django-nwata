@@ -331,7 +331,7 @@ class ActivityIngest(DeviceAuthMixin, APIView):
         
         logger.debug(
             f"Created ActivityLog {activity.id}: {activity.app_name} "
-            f"({activity.duration:.1f}s, quality: {activity.data_quality_score:.2f})"
+            f"({activity.duration:.1f}s, quality: {activity.data_quality_score:.2f if activity.data_quality_score is not None else 'N/A'})"
         )
         return activity
 
