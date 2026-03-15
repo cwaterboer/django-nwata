@@ -228,6 +228,36 @@
 <div class="content-area">
     <h1 class="page-title"><span class="material-icons md-18">build</span> Device Setup</h1>
 
+    <!-- Connected Devices -->
+    {% if devices %}
+    <div class="section">
+        <h2 class="section-title">💻 Your Connected Devices</h2>
+        <div class="devices-list">
+            {% for device in devices %}
+            <div class="device-item">
+                <div>
+                    <div class="device-name">{{ device.device_name }}</div>
+                    <div class="device-status">
+                        Last seen: {% if device.last_seen_at %}{{ device.last_seen_at|timesince }} ago{% else %}Never{% endif %}
+                        {% if device.last_seen_at %}
+                            <span class="status-online">● Active</span>
+                        {% else %}
+                            <span style="color: #dc3545;">● Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="warning-box">
+        <strong>⚠️ No devices connected yet</strong><br>
+        Follow the steps above to connect your first device and start tracking.
+    </div>
+    {% endif %}    
+
+
     <!-- Download Section -->
     <div class="download-section">
         <h2><span class="material-icons md-18">download</span> Step 1: Download the Agent</h2>
@@ -369,34 +399,6 @@ pip install requests pywin32  # Windows</pre>
         </div>
     </div>
 
-    <!-- Connected Devices -->
-    {% if devices %}
-    <div class="section">
-        <h2 class="section-title">💻 Your Connected Devices</h2>
-        <div class="devices-list">
-            {% for device in devices %}
-            <div class="device-item">
-                <div>
-                    <div class="device-name">{{ device.device_name }}</div>
-                    <div class="device-status">
-                        Last seen: {% if device.last_seen_at %}{{ device.last_seen_at|timesince }} ago{% else %}Never{% endif %}
-                        {% if device.last_seen_at %}
-                            <span class="status-online">● Active</span>
-                        {% else %}
-                            <span style="color: #dc3545;">● Inactive</span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% else %}
-    <div class="warning-box">
-        <strong>⚠️ No devices connected yet</strong><br>
-        Follow the steps above to connect your first device and start tracking.
-    </div>
-    {% endif %}
 </div>
 {% endblock %}
 
