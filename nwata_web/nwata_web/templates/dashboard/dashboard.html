@@ -623,8 +623,8 @@ function updateCardsView() {
             <div class="current-stats" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
                 <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Current Period</div>
                 <div style="display: flex; justify-content: space-between;">
-                    <span>${app.current.count} activities</span>
-                    <span>${app.current.total_duration}m total</span>
+                    <span>${(app.current && app.current.count) || 0} activities</span>
+                    <span>${(app.current && app.current.total_duration) || 0}m total</span>
                 </div>
             </div>
             ${currentPeriod !== 'today' ? `
@@ -639,8 +639,8 @@ function updateCardsView() {
                     </div>
                     <div class="change-metric">
                         <div class="metric-label">Time</div>
-                        <div class="metric-value change-${app.duration_change > 0 ? 'positive' : app.duration_change < 0 ? 'negative' : 'neutral'}">
-                            ${app.duration_change > 0 ? '+' : ''}${app.duration_change}m (${app.duration_change_pct}%)
+                        <div class="metric-value change-${(app.duration_change || 0) > 0 ? 'positive' : (app.duration_change || 0) < 0 ? 'negative' : 'neutral'}">
+                            ${(app.duration_change || 0) > 0 ? '+' : ''}${(app.duration_change || 0)}m (${(app.duration_change_pct || 0)}%)
                         </div>
                     </div>
                 </div>
@@ -680,8 +680,8 @@ function createChart() {
 
     // Prepare data for chart
     const labels = filteredData.map(app => app.app_name);
-    const currentData = filteredData.map(app => app.current.total_duration);
-    const previousData = period !== 'today' ? filteredData.map(app => app.previous.total_duration) : [];
+    const currentData = filteredData.map(app => (app.current && app.current.total_duration) || 0);
+    const previousData = period !== 'today' ? filteredData.map(app => (app.previous && app.previous.total_duration) || 0) : [];
 
     // Generate colors
     const colors = generateColors(filteredData.length);
@@ -943,8 +943,8 @@ function switchCanvas(canvasId) {
                 <div class="current-stats" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
                     <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Current Period</div>
                     <div style="display: flex; justify-content: space-between;">
-                        <span>{{ app.current.count }} activities</span>
-                        <span>{{ app.current.total_duration }}m total</span>
+                        <span>{{ app.current.count|default:0 }} activities</span>
+                        <span>{{ app.current.total_duration|default:0 }}m total</span>
                     </div>
                 </div>
 
@@ -1032,7 +1032,7 @@ function switchCanvas(canvasId) {
                 <div class="insight-text">
                     You spent most of your time in 
                     <span class="insight-metric">{{ app_stats.0.app_name }}</span>
-                    with <span class="insight-metric">{{ app_stats.0.total_duration }} minutes</span> logged across {{ app_stats.0.count }} activities.
+                    with <span class="insight-metric">{{ app_stats.0.total_duration|default:0 }} minutes</span> logged across {{ app_stats.0.count|default:0 }} activities.
                 </div>
             </div>
             {% endif %}
