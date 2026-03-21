@@ -1,0 +1,380 @@
+{% if user.is_authenticated %}
+<!-- Notification Bell Icon with Badge -->
+<div class="notification-bell-container" style="position: relative; margin-right: 1rem;">
+    <button id="notificationBell" class="notification-bell" style="
+        background: none;
+        border: none;
+        color: #d1d5db;
+        font-size: 24px;
+        cursor: pointer;
+        position: relative;
+        transition: color 0.2s;
+        padding: 0.5rem;
+    ">
+        <span class="material-icons">notifications</span>
+        <span id="notificationBadge" class="notification-badge" style="
+            display: none;
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+        ">0</span>
+    </button>
+    
+    <!-- Notification Dropdown Panel -->
+    <div id="notificationPanel" class="notification-panel" style="
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        width: 400px;
+        max-height: 600px;
+        overflow-y: auto;
+        margin-top: 0.5rem;
+        z-index: 100;
+    ">
+        <!-- Panel Header -->
+        <div style="
+            padding: 1rem;
+            border-bottom: 1px solid #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        ">
+            <h3 style="margin: 0; font-size: 1rem; color: white;">Notifications</h3>
+            <button id="clearNotifications" style="
+                background: none;
+                border: none;
+                color: #9ca3af;
+                cursor: pointer;
+                font-size: 14px;
+                text-decoration: underline;
+            ">Clear All</button>
+        </div>
+        
+        <!-- Notifications List -->
+        <div id="notificationsList" style="
+            max-height: 500px;
+            overflow-y: auto;
+        ">
+            <div style="padding: 2rem; text-align: center; color: #9ca3af;">
+                Loading notifications...
+            </div>
+        </div>
+        
+        <!-- View All Link -->
+        <div style="
+            padding: 1rem;
+            border-top: 1px solid #374151;
+            text-align: center;
+        ">
+            <a href="#" style="
+                color: #fb923c;
+                text-decoration: none;
+                font-size: 0.875rem;
+                transition: color 0.2s;
+            " onmouseover="this.style.color='#ea580c'" onmouseout="this.style.color='#fb923c'">
+                View All Notifications →
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .notification-bell:hover {
+        color: #ffffff;
+    }
+    
+    .notification-item {
+        padding: 1rem;
+        border-bottom: 1px solid #374151;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .notification-item:hover {
+        background-color: #111827;
+    }
+    
+    .notification-item.unread {
+        background-color: rgba(251, 146, 60, 0.1);
+        border-left: 3px solid #fb923c;
+    }
+    
+    .notification-item-title {
+        font-weight: 600;
+        color: white;
+        margin: 0 0 0.25rem 0;
+        font-size: 0.875rem;
+    }
+    
+    .notification-item-message {
+        color: #9ca3af;
+        font-size: 0.8125rem;
+        margin: 0 0 0.5rem 0;
+    }
+    
+    .notification-item-time {
+        color: #6b7280;
+        font-size: 0.75rem;
+    }
+    
+    .notification-item-type {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        background: rgba(251, 146, 60, 0.2);
+        color: #fb923c;
+        border-radius: 0.25rem;
+        font-size: 0.7rem;
+        margin-right: 0.5rem;
+        margin-top: 0.25rem;
+    }
+    
+    .notification-empty {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #9ca3af;
+    }
+</style>
+
+<script>
+    // Notification state
+    let notificationState = {
+        unreadCount: 0,
+        notifications: [],
+        pollInterval: null
+    };
+    
+    // Initialize notification system
+    function initializeNotifications() {
+        const bell = document.getElementById('notificationBell');
+        const panel = document.getElementById('notificationPanel');
+        
+        // Toggle panel on bell click
+        bell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                fetchNotifications();
+            } else {
+                panel.style.display = 'none';
+            }
+        });
+        
+        // Close panel when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.notification-bell-container')) {
+                panel.style.display = 'none';
+            }
+        });
+        
+        // Clear notifications button
+        document.getElementById('clearNotifications').addEventListener('click', (e) => {
+            e.preventDefault();
+            markAllAsRead();
+        });
+        
+        // Start polling for notifications
+        fetchUnreadCount();
+        notificationState.pollInterval = setInterval(fetchUnreadCount, 10000); // Poll every 10 seconds
+    }
+    
+    // Fetch unread count
+    async function fetchUnreadCount() {
+        try {
+            const response = await fetch('/api/notifications/unread-count/', {
+                headers: {
+                    'Authorization': 'Bearer ' + getCookie('token')
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                updateBadge(data.unread_count);
+            }
+        } catch (error) {
+            console.error('Error fetching unread count:', error);
+        }
+    }
+    
+    // Fetch notifications list
+    async function fetchNotifications() {
+        try {
+            const response = await fetch('/api/notifications/?limit=10', {
+                headers: {
+                    'Authorization': 'Bearer ' + getCookie('token')
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                renderNotifications(data.results);
+            }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        }
+    }
+    
+    // Update badge count
+    function updateBadge(count) {
+        const badge = document.getElementById('notificationBadge');
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'flex';
+            notificationState.unreadCount = count;
+        } else {
+            badge.style.display = 'none';
+            notificationState.unreadCount = 0;
+        }
+    }
+    
+    // Render notifications
+    function renderNotifications(notifications) {
+        const list = document.getElementById('notificationsList');
+        notificationState.notifications = notifications;
+        
+        if (!notifications || notifications.length === 0) {
+            list.innerHTML = '<div class="notification-empty">No notifications</div>';
+            return;
+        }
+        
+        let html = '';
+        notifications.forEach(notif => {
+            const date = new Date(notif.created_at);
+            const timeAgo = getTimeAgo(date);
+            const isUnread = !notif.is_read ? 'unread' : '';
+            
+            html += `
+                <div class="notification-item ${isUnread}" data-id="${notif.id}">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <p class="notification-item-title">${escapeHtml(notif.title)}</p>
+                            <p class="notification-item-message">${escapeHtml(notif.message)}</p>
+                            <span class="notification-item-type">${notif.notification_type}</span>
+                            <p class="notification-item-time">${timeAgo}</p>
+                        </div>
+                        ${!notif.is_read ? `
+                            <button style="
+                                background: none;
+                                border: none;
+                                color: #6b7280;
+                                cursor: pointer;
+                                padding: 0;
+                                font-size: 18px;
+                            " onclick="markAsRead(${notif.id})" title="Mark as read">×</button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        list.innerHTML = html;
+    }
+    
+    // Mark single notification as read
+    async function markAsRead(notificationId) {
+        try {
+            const response = await fetch(`/api/notifications/${notificationId}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + getCookie('token'),
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                fetchNotifications();
+                fetchUnreadCount();
+            }
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    }
+    
+    // Mark all as read
+    async function markAllAsRead() {
+        if (!notificationState.notifications || notificationState.notifications.length === 0) {
+            return;
+        }
+        
+        const unreadIds = notificationState.notifications
+            .filter(n => !n.is_read)
+            .map(n => n.id);
+        
+        if (unreadIds.length === 0) return;
+        
+        try {
+            const response = await fetch('/api/notifications/mark-as-read/', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + getCookie('token'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ notification_ids: unreadIds })
+            });
+            
+            if (response.ok) {
+                fetchNotifications();
+                fetchUnreadCount();
+            }
+        } catch (error) {
+            console.error('Error marking notifications as read:', error);
+        }
+    }
+    
+    // Helper: Get time ago string
+    function getTimeAgo(date) {
+        const seconds = Math.floor((new Date() - date) / 1000);
+        
+        if (seconds < 60) return 'now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
+    }
+    
+    // Helper: Escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Helper: Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    try {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    } catch(e) {}
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', initializeNotifications);
+</script>
+{% endif %}

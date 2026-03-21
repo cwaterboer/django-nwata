@@ -763,3 +763,92 @@ class APIKey(models.Model):
 
     def __str__(self):
         return f"{self.device} - {self.event} @ {self.created_at}"
+
+
+# ========================================
+# NOTIFICATIONS SYSTEM
+# ========================================
+
+class Notification(models.Model):
+    """In-app notifications for team members about organization events"""
+    
+    NOTIFICATION_TYPES = (
+        ('user_added', 'User Added to Organization'),
+        ('user_role_changed', 'User Role Changed'),
+        ('user_removed', 'User Removed from Organization'),
+        ('user_invited', 'User Invited to Organization'),
+        ('invite_accepted', 'Invitation Accepted'),
+        ('org_created', 'Organization Created'),
+        ('billing_alert', 'Billing Alert'),
+        ('security_alert', 'Security Alert'),
+    )
+    
+    # Recipient
+    recipient = models.ForeignKey(AuthUser, on_delete=models.CASCADE, related_name='notifications')
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='notifications')
+    
+    # Notification content
+    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES, db_index=True)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    
+    # Related data
+    actor = models.ForeignKey(AuthUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='notifications_created')
+    related_user = models.ForeignKey(AuthUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='notifications_about')
+    
+    # Extended metadata
+    metadata = models.JSONField(default=dict, help_text="Extra data: {'member_name': 'John', 'role': 'admin', etc}")
+    
+    # Status
+    is_read = models.BooleanField(default=False, db_index=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Deletion (soft delete)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['recipient', 'is_read', '-created_at']),
+            models.Index(fields=['organization', 'is_read', '-created_at']),
+            models.Index(fields=['notification_type', '-created_at']),
+            models.Index(fields=['recipient', '-created_at']),
+        ]
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.title} - {self.recipient.email} ({self.created_at})"
+    
+    def mark_as_read(self):
+        """Mark notification as read"""
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=['is_read', 'read_at', 'updated_at'])
+    
+    def soft_delete(self):
+        """Soft delete the notification"""
+        if not self.is_deleted:
+            self.is_deleted = True
+            self.deleted_at = timezone.now()
+            self.save(update_fields=['is_deleted', 'deleted_at', 'updated_at'])
+    
+    @classmethod
+    def get_unread_count(cls, user, organization=None):
+        """Get count of unread notifications for a user"""
+        qs = cls.objects.filter(recipient=user, is_read=False, is_deleted=False)
+        if organization:
+            qs = qs.filter(organization=organization)
+        return qs.count()
+    
+    @classmethod
+    def get_recent(cls, user, organization=None, limit=10):
+        """Get recent notifications for a user"""
+        qs = cls.objects.filter(recipient=user, is_deleted=False).order_by('-created_at')[:limit]
+        if organization:
+            qs = qs.filter(organization=organization)
+        return qs

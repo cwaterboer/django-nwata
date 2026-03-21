@@ -252,6 +252,7 @@
 
             <div class="header-actions">
                 {% if user.is_authenticated %}
+                    {% include "notifications_component.html" %}
                     <a href="{% url 'dashboard' %}" class="btn btn-secondary">Dashboard</a>
                 {% else %}
                     <a href="{% url 'login' %}" style="color: #d1d5db; text-decoration: none; font-weight: 500;">Login</a>

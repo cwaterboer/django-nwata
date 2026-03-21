@@ -274,3 +274,43 @@ def update_data_quality_metrics(sender, instance, created, **kwargs):
         logger = logging.getLogger(__name__)
         logger.error(f"Unexpected error in data quality signal: {e}", exc_info=True)
 
+
+# ==========================================
+# NOTIFICATION SIGNALS
+# ==========================================
+
+@receiver(post_save, sender='api.Membership')
+def trigger_user_added_notification(sender, instance, created, **kwargs):
+    """
+    Trigger notification when user is added to organization.
+    Fires when Membership.status changes to 'active'.
+    """
+    from .tasks import send_user_added_notification
+    
+    if created and instance.status == 'active':
+        # Async task to send notifications to all members
+        send_user_added_notification.delay(
+            organization_id=instance.organization.id,
+            new_user_id=instance.auth_user.id,
+            added_by_id=instance.created_by.id if hasattr(instance, 'created_by') and instance.created_by else 1
+        )
+
+
+@receiver(pre_delete, sender='api.Membership')
+def trigger_user_removed_notification(sender, instance, **kwargs):
+    """
+    Trigger notification when user is removed from organization.
+    Fires before Membership is deleted.
+    """
+    from .tasks import send_user_removed_notification
+    
+    if instance.status == 'active':
+        # Get the user who initiated the removal (from context if available)
+        removed_by_id = getattr(instance, '_removed_by_id', 1)
+        
+        send_user_removed_notification.delay(
+            organization_id=instance.organization.id,
+            removed_user_email=instance.auth_user.email,
+            removed_by_id=removed_by_id
+        )
+
