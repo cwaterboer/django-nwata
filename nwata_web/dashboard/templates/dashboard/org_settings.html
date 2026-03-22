@@ -27,39 +27,43 @@
 }
 
 /* Tab Navigation */
-.settings-tabs {
+.tabs-container {
     display: flex;
-    gap: 10px;
-    margin-bottom: 30px;
-    background: white;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e5e7eb;
     overflow-x: auto;
 }
 
-.settings-tab {
-    padding: 10px 20px;
+.tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: none;
     border: none;
-    background: #f8f9fa;
-    color: #666;
-    border-radius: 8px;
+    border-bottom: 3px solid transparent;
+    color: #6b7280;
     cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s;
-    white-space: nowrap;
+    font-weight: 600;
     text-decoration: none;
-    display: inline-block;
+    white-space: nowrap;
+    margin-bottom: -2px;
+    transition: all 0.2s;
 }
 
-.settings-tab:hover {
-    background: #e9ecef;
+.tab-btn:hover {
     color: #2c3e50;
+    background: rgba(0, 0, 0, 0.02);
 }
 
-.settings-tab.active {
-    background: linear-gradient(135deg, #ff6600 0%, #ea580c 100%);
-    color: white;
+.tab-btn.active {
+    color: #ea580c;
+    border-bottom-color: #ea580c;
+}
+
+.settings-container .tab-content.active {
+    display: block;
 }
 
 /* Settings Cards */
@@ -69,6 +73,24 @@
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     margin-bottom: 20px;
+    animation: settingsFadeIn 0.32s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+}
+
+@keyframes settingsFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .settings-card-title {
@@ -301,27 +323,27 @@ textarea {
 {% block content %}
 <div class="settings-container">
     <!-- Tab Navigation -->
-    <div class="settings-tabs">
+    <div class="tabs-container" role="tablist" aria-label="Organization settings tabs">
         <a href="{% url 'org_settings' %}?tab=general" 
-           class="settings-tab {% if active_tab == 'general' %}active{% endif %}">
+           class="tab-btn {% if active_tab == 'general' %}active{% endif %}">
             <span class="material-icons md-18">settings</span> General
         </a>
         <a href="{% url 'org_settings' %}?tab=members" 
-           class="settings-tab {% if active_tab == 'members' %}active{% endif %}">
+           class="tab-btn {% if active_tab == 'members' %}active{% endif %}">
             <span class="material-icons md-18">group</span> Members
         </a>
         {% if is_team %}
         <a href="{% url 'org_settings' %}?tab=departments" 
-           class="settings-tab {% if active_tab == 'departments' %}active{% endif %}">
+           class="tab-btn {% if active_tab == 'departments' %}active{% endif %}">
             <span class="material-icons md-18">apartment</span> Departments
         </a>
         {% endif %}
         <a href="{% url 'org_settings' %}?tab=roles" 
-           class="settings-tab {% if active_tab == 'roles' %}active{% endif %}">
+           class="tab-btn {% if active_tab == 'roles' %}active{% endif %}">
             <span class="material-icons md-18">security</span> Roles
         </a>
         <a href="{% url 'org_settings' %}?tab=audit" 
-           class="settings-tab {% if active_tab == 'audit' %}active{% endif %}">
+           class="tab-btn {% if active_tab == 'audit' %}active{% endif %}">
             <span class="material-icons md-18">list_alt</span> Audit Log
         </a>
     </div>
@@ -333,4 +355,20 @@ textarea {
     {% include "dashboard/org_tabs/tab_roles.html" %}
     {% include "dashboard/org_tabs/tab_audit.html" %}
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.settings-card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = (index * 40) + 'ms';
+    });
+
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab) {
+        activeTab.setAttribute('aria-current', 'page');
+    }
+});
+</script>
 {% endblock %}

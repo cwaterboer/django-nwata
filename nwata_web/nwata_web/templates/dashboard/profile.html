@@ -5,11 +5,61 @@
 {% block extra_styles %}
 <style>
 .profile-section {
-    max-width: 700px;
+    max-width: 1120px;
+}
+
+.tabs-container {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+}
+
+.tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #374151;
+    border-radius: 10px;
+    padding: 0.625rem 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+    transform: translateY(-1px);
+    border-color: #fed7aa;
+    background: #fff7ed;
+}
+
+.tab-btn.active {
+    color: #ffffff;
+    border-color: #ea580c;
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.tab-content {
+    display: none;
+    animation: fadeInUp 0.28s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .messages {
-    margin-bottom: 20px;
+    margin-bottom: 1rem;
 }
 
 .message {
@@ -31,17 +81,25 @@
 }
 
 .info-card {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 30px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    padding: 1.25rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.info-card:hover {
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
 }
 
 .info-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
-    padding: 8px 0;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    padding: 0.7rem 0;
 }
 
 .info-row:not(:last-child) {
@@ -49,12 +107,12 @@
 }
 
 .info-label {
-    color: #666;
+    color: #6b7280;
     font-weight: 500;
 }
 
 .info-value {
-    color: #333;
+    color: #111827;
     font-weight: 600;
 }
 
@@ -62,12 +120,8 @@
     margin-top: 30px;
 }
 
-.section-subtitle {
-    font-size: 1.2em;
-    color: #2c3e50;
-    margin-bottom: 20px;
-    font-weight: 600;
-}
+
+.section-subtitle { font-size: 1rem; color: #111827; margin-bottom: 1rem; font-weight: 600; }
 
 .form-group {
     margin-bottom: 20px;
@@ -75,24 +129,25 @@
 
 label {
     display: block;
-    margin-bottom: 8px;
-    color: #333;
+    margin-bottom: 0.45rem;
+    color: #374151;
     font-weight: 500;
-    font-size: 0.9em;
+    font-size: 0.9rem;
 }
 
 input {
     width: 100%;
-    padding: 12px 15px;
-    border: 2px solid #e0e0e0;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #d1d5db;
     border-radius: 8px;
-    font-size: 1em;
+    font-size: 0.95rem;
     transition: border-color 0.3s;
 }
 
 input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
 }
 
 input:disabled {
@@ -112,15 +167,16 @@ input:disabled {
 
 .btn-group {
     display: flex;
+    flex-wrap: wrap;
     gap: 15px;
-    margin-top: 25px;
+    margin-top: 1rem;
 }
 
 button, .btn {
-    padding: 12px 24px;
+    padding: 10px 16px;
     border: none;
     border-radius: 8px;
-    font-size: 0.95em;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -130,18 +186,39 @@ button, .btn {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
     color: white;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 10px 20px rgba(234, 88, 12, 0.3);
 }
 
 .btn-secondary {
-    background: #6c757d;
-    color: white;
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.placeholder-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.placeholder-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 6px;
+}
+
+.placeholder-text {
+    color: #6b7280;
+    font-size: 0.9rem;
 }
 
 .value-container {
@@ -164,7 +241,23 @@ button, .btn {
 
 .edit-group input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #f97316;
+}
+
+@media (max-width: 768px) {
+    .tabs-container {
+        overflow-x: auto;
+    }
+
+    .info-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .value-container {
+        width: 100%;
+        text-align: left;
+    }
 }
 </style>
 {% endblock %}
@@ -172,6 +265,14 @@ button, .btn {
 {% block content %}
 <div class="content-area profile-section">
     <h1 class="page-title"><span class="material-icons md-36">settings</span> Profile Settings</h1>
+
+    <div class="tabs-container" role="tablist" aria-label="Profile tabs">
+        <button type="button" class="tab-btn active" data-tab="profile">Profile Settings</button>
+        <button type="button" class="tab-btn" data-tab="payment">Payment Details</button>
+        <button type="button" class="tab-btn" data-tab="security">Security</button>
+    </div>
+
+    <div id="profileTab" class="tab-content active">
     {% if memberships %}
     <div class="section-subtitle" style="margin-bottom: 15px;">
         Workspaces:
@@ -280,16 +381,60 @@ button, .btn {
             <button type="button" id="cancel-btn" class="btn-secondary" style="display:none;">Cancel</button>
         </div>
     </form>
+    </div>
+
+    <div id="paymentTab" class="tab-content">
+        <div class="placeholder-card">
+            <div class="placeholder-title">Payment Methods</div>
+            <div class="placeholder-text">Add and manage payment methods for premium plans.</div>
+        </div>
+        <div class="placeholder-card">
+            <div class="placeholder-title">Billing History</div>
+            <div class="placeholder-text">No invoices yet. Billing records will appear here once subscriptions are active.</div>
+        </div>
+    </div>
+
+    <div id="securityTab" class="tab-content">
+        <div class="placeholder-card">
+            <div class="placeholder-title">Password</div>
+            <div class="placeholder-text" style="margin-bottom: 12px;">Change your account password from the secure password page.</div>
+            <a href="{% url 'change_password' %}" class="btn btn-secondary">Open Password Settings</a>
+        </div>
+        <div class="placeholder-card">
+            <div class="placeholder-title">Two-Factor Authentication</div>
+            <div class="placeholder-text">2FA UI scaffolding is now in place. Backend enforcement can be added next.</div>
+        </div>
+    </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            tabButtons.forEach(b => b.classList.remove('active'));
+            tabPanels.forEach(p => p.classList.remove('active'));
+            this.classList.add('active');
+            const panel = document.getElementById(tabName + 'Tab');
+            if (panel) {
+                panel.classList.add('active');
+            }
+        });
+    });
+
     const editBtn = document.getElementById('edit-btn');
     const saveBtn = document.getElementById('save-btn');
     const cancelBtn = document.getElementById('cancel-btn');
     const displayValues = document.querySelectorAll('.display-value');
     const editGroups = document.querySelectorAll('.edit-group');
     const form = document.getElementById('profile-form');
+
+    if (!editBtn || !saveBtn || !cancelBtn || !form) {
+        return;
+    }
 
     // Store original values for cancel
     let originalValues = {};

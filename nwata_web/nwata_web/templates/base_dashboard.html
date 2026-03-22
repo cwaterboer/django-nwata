@@ -1,121 +1,14 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Nwata Dashboard{% endblock %}</title>
-    <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{% static 'ui/dashboard_styles.css' %}">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f8f9fa;
-            color: #333;
-        }
-
-        .wrapper {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 250px;
-            background: #2c3e50;
-            color: white;
-            padding: 20px;
-            transition: width 0.3s ease;
-            overflow-y: auto;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.1);
-        }
-
-        .sidebar.collapsed {
-            width: 80px;
-        }
-
-        .sidebar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-
-        .sidebar-toggle {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.5em;
-            cursor: pointer;
-            padding: 5px;
-        }
-
-        .sidebar-toggle:hover {
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
-        }
-
-        .logo {
-            font-size: 1.3em;
-            font-weight: bold;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-
-        .sidebar.collapsed .logo {
-            display: none;
-        }
-
-        .sidebar-menu {
-            list-style: none;
-        }
-
-        .menu-section {
-            font-size: 0.7em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #95a5a6;
-            padding: 20px 15px 8px 15px;
-            font-weight: 600;
-        }
-
-        .menu-section:first-child {
-            padding-top: 0;
-        }
-
-        .menu-item {
-            padding: 15px 7px;
-            margin-bottom: 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .menu-item:hover {
-            background: rgba(255,255,255,0.1);
-        }
-
-        .menu-item.active {
-            background: #ff6600;
-        }
-
-        .menu-icon {
-            min-width: 24px;
-            font-size: 1.2em;
-        }
-
-        /* Material Icons styling */
         .material-icons {
             font-family: 'Material Icons';
             font-weight: normal;
@@ -124,6 +17,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            line-height: 1;
             text-transform: none;
             letter-spacing: normal;
             word-wrap: normal;
@@ -134,217 +28,127 @@
         .material-icons.md-18 { font-size: 18px; }
         .material-icons.md-24 { font-size: 24px; }
         .material-icons.md-36 { font-size: 36px; }
-        .material-icons.md-48 { font-size: 48px; }
 
-        .menu-label {
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-
-        .sidebar.collapsed .menu-label,
-        .sidebar.collapsed .menu-section {
-            display: none;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            padding: 30px;
-            overflow-y: auto;
-        }
-
-        /* Header */
-        .header {
-            background: white;
-            padding: 20px 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header h1 {
-            font-size: 1.8em;
-            color: #2c3e50;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .user-profile:hover {
-            background: #e9ecef;
-        }
-
-        .user-icon {
-            font-size: 1.5em;
-        }
-
-        .user-info {
+        .dashboard-page-content {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
+            gap: 1.5rem;
         }
 
-        .user-name {
-            font-weight: 600;
-            color: #333;
-            font-size: 0.95em;
-        }
-
-        .user-email {
-            font-size: 0.8em;
-            color: #888;
-        }
-
-        /* Content Area Styles */
         .content-area {
-            background: white;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            padding: 30px;
-        }
-
-        .page-title {
-            font-size: 1.5em;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            border-bottom: 3px solid #ff6600;
-            padding-bottom: 10px;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
         }
     </style>
     {% block extra_styles %}{% endblock %}
 </head>
 <body>
-    <div class="wrapper">
-        <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">Nwata</div>
-                <button class="sidebar-toggle" onclick="toggleSidebar()"><span class="material-icons">menu</span></button>
-            </div>
-
-            <ul class="sidebar-menu">
-                <li class="menu-section">Overview</li>
-                <li class="menu-item {% if request.resolver_match.url_name == 'dashboard' and not request.GET.view %}active{% endif %}" onclick="window.location.href=window.dashboardUrl">
-                    <span class="menu-icon material-icons">dashboard</span>
-                    <span class="menu-label">Dashboard</span>
-                </li>
-
-                <li class="menu-section">Analytics</li>
-                <li class="menu-item {% if request.resolver_match.url_name == 'analytics_app_usage' or request.resolver_match.url_name == 'dashboard' and request.GET.view == 'apps' %}active{% endif %}" onclick="window.location.href=window.appsUrl">
-                    <span class="menu-icon material-icons">apps</span>
-                    <span class="menu-label">App Usage</span>
-                </li>
-                <li class="menu-item {% if request.resolver_match.url_name == 'analytics_activity_feed' or request.resolver_match.url_name == 'dashboard' and request.GET.view == 'activity' %}active{% endif %}" onclick="window.location.href=window.activityUrl">
-                    <span class="menu-icon material-icons">timeline</span>
-                    <span class="menu-label">Activity Feed</span>
-                </li>
-                <li class="menu-item {% if request.resolver_match.url_name == 'analytics_insights' or request.resolver_match.url_name == 'dashboard' and request.GET.view == 'insights' %}active{% endif %}" onclick="window.location.href=window.insightsUrl">
-                    <span class="menu-icon material-icons">insights</span>
-                    <span class="menu-label">Insights</span>
-                </li>
-                
-                <!-- Organization Section (for all authenticated users) -->
-                {% if request.organization %}
-                <li class="menu-section">Organization</li>
-                <li class="menu-item {% if request.resolver_match.url_name == 'org_settings' %}active{% endif %}" onclick="window.location.href=window.orgSettingsUrl">
-                    <span class="menu-icon material-icons">settings</span>
-                    <span class="menu-label">Settings</span>
-                </li>
-                {% endif %}
-                
-                <li class="menu-section">Account</li>
-                <li class="menu-item {% if request.resolver_match.url_name == 'device_setup' %}active{% endif %}" onclick="window.location.href=window.deviceSetupUrl">
-                    <span class="menu-icon material-icons">computer</span>
-                    <span class="menu-label">Device Setup</span>
-                </li>
-                <li class="menu-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" onclick="window.location.href=window.profileUrl">
-                    <span class="menu-icon material-icons">person</span>
-                    <span class="menu-label">My Profile</span>
-                </li>
-                <li class="menu-item" onclick="window.location.href=window.logoutUrl">
-                    <span class="menu-icon material-icons">logout</span>
-                    <span class="menu-label">Logout</span>
-                </li>
-            </ul>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h1 class="logo">Nwata</h1>
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">
+                <span class="material-icons md-24">menu</span>
+            </button>
         </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Header -->
-            <div class="header">
-                <div>
-                    <h1>{% if request.organization %}{{ request.organization.name }}{% else %}Nwata{% endif %}</h1>
-                </div>
-                <div class="header-right">
-                    <div class="user-profile">
-                        <span class="user-icon material-icons">person</span>
-                        <div class="user-info">
-                            <div class="user-name">
-                                {% if user.first_name or user.last_name %}
-                                    {{ user.first_name }} {{ user.last_name }}
-                                {% else %}
-                                    {{ user.username }}
-                                {% endif %}
-                            </div>
-                            <div class="user-email">{{ user.email }}</div>
-                        </div>
-                    </div>
-                </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <p class="nav-label">OVERVIEW</p>
+                <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' and not request.GET.view %}active{% endif %}">
+                    <span class="nav-icon material-icons md-18">dashboard</span>
+                    <span class="nav-text">Dashboard</span>
+                </a>
             </div>
 
-            <!-- Page Content -->
+            <div class="nav-section">
+                <p class="nav-label">ANALYTICS</p>
+                <a href="{% url 'analytics_app_usage' %}" class="nav-item {% if request.resolver_match.url_name == 'analytics_app_usage' or request.resolver_match.url_name == 'dashboard' and request.GET.view == 'apps' %}active{% endif %}">
+                    <span class="nav-icon material-icons md-18">apps</span>
+                    <span class="nav-text">App Usage</span>
+                </a>
+                <a href="{% url 'analytics_activity_feed' %}" class="nav-item {% if request.resolver_match.url_name == 'analytics_activity_feed' or request.resolver_match.url_name == 'dashboard' and request.GET.view == 'activity' %}active{% endif %}">
+                    <span class="nav-icon material-icons md-18">timeline</span>
+                    <span class="nav-text">Activity Feed</span>
+                </a>
+                <a href="{% url 'analytics_insights' %}" class="nav-item {% if request.resolver_match.url_name == 'analytics_insights' or request.resolver_match.url_name == 'dashboard' and request.GET.view == 'insights' %}active{% endif %}">
+                    <span class="nav-icon material-icons md-18">insights</span>
+                    <span class="nav-text">Insights</span>
+                </a>
+            </div>
+
+            {% if request.organization %}
+            <div class="nav-section">
+                <p class="nav-label">ORGANIZATION</p>
+                <a href="{% url 'org_settings' %}?tab=general" class="nav-item {% if request.resolver_match.url_name == 'org_settings' %}active{% endif %}">
+                    <span class="nav-icon material-icons md-18">settings</span>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </div>
+            {% endif %}
+
+            <div class="nav-section">
+                <p class="nav-label">ACCOUNT</p>
+                <a href="{% url 'device_setup' %}" class="nav-item {% if request.resolver_match.url_name == 'device_setup' %}active{% endif %}">
+                    <span class="nav-icon material-icons md-18">computer</span>
+                    <span class="nav-text">Device Setup</span>
+                </a>
+                <a href="{% url 'profile' %}" class="nav-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                    <span class="nav-icon material-icons md-18">person</span>
+                    <span class="nav-text">My Profile</span>
+                </a>
+                <a href="{% url 'logout' %}" class="nav-item">
+                    <span class="nav-icon material-icons md-18">logout</span>
+                    <span class="nav-text">Logout</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h2 class="page-title">{% if request.organization %}{{ request.organization.name }}{% else %}Nwata{% endif %}</h2>
+            <div class="user-info">
+                <span class="material-icons md-24">account_circle</span>
+                <div class="user-details">
+                    <span class="user-name">
+                        {% if user.first_name or user.last_name %}
+                            {{ user.first_name }} {{ user.last_name }}
+                        {% else %}
+                            {{ user.username }}
+                        {% endif %}
+                    </span>
+                    <span class="user-email">{{ user.email }}</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-page-content">
             {% block content %}{% endblock %}
         </div>
-    </div>
+    </main>
 
     <script>
-        // URL constants for sidebar navigation
-        const urls = {
-            dashboard: '{% url "dashboard" %}',
-            apps: '{% url "analytics_app_usage" %}',
-            activity: '{% url "analytics_activity_feed" %}',
-            insights: '{% url "analytics_insights" %}',
-            org_settings: '{% url "org_settings" %}?tab=general',
-            device_setup: '{% url "device_setup" %}',
-            profile: '{% url "profile" %}',
-            logout: '{% url "logout" %}'
-        };
-        
-        // Store in window for use in onclick handlers
-        window.dashboardUrl = urls.dashboard;
-        window.appsUrl = urls.apps;
-        window.activityUrl = urls.activity;
-        window.insightsUrl = urls.insights;
-        window.orgSettingsUrl = urls.org_settings;
-        window.deviceSetupUrl = urls.device_setup;
-        window.profileUrl = urls.profile;
-        window.logoutUrl = urls.logout;
-    </script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
 
-    <script>
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('collapsed');
-        }
+            if (!sidebar || !sidebarToggle) {
+                return;
+            }
+
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                sidebar.classList.add('collapsed');
+            }
+
+            sidebarToggle.addEventListener('click', function () {
+                sidebar.classList.toggle('collapsed');
+                localStorage.setItem('sidebarCollapsed', String(sidebar.classList.contains('collapsed')));
+            });
+        });
     </script>
     {% block extra_scripts %}{% endblock %}
 </body>
