@@ -327,7 +327,7 @@ class DeviceEvent(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.device.name} - {self.event} ({self.created_at})"
+        return f"{self.device.device_name} - {self.event} ({self.created_at})"
 
 
 class DataQualityMetrics(models.Model):
@@ -760,9 +760,6 @@ class APIKey(models.Model):
         if self.expires_at and timezone.now() > self.expires_at:
             return False
         return True
-
-    def __str__(self):
-        return f"{self.device} - {self.event} @ {self.created_at}"
 
 
 # ========================================
