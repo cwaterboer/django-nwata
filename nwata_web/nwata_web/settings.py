@@ -210,6 +210,13 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
+# Enable async signal dispatch only in production-like environments by default.
+# Override with ENABLE_ASYNC_SIGNAL_DISPATCH=true/false when needed.
+ENABLE_ASYNC_SIGNAL_DISPATCH = os.environ.get(
+    'ENABLE_ASYNC_SIGNAL_DISPATCH',
+    'true' if not DEBUG else 'false'
+).lower() in ('true', '1', 'yes')
+
 # Redis Cache Configuration (for caching queries)
 CACHES = {
     'default': {

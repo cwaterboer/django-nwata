@@ -3,6 +3,7 @@ Django signals for automatic audit logging and data quality monitoring
 """
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
+from django.conf import settings
 from django.utils import timezone
 from datetime import datetime, date
 from .models import UserOrgRole, Organization, OrganizationState, Department, AuditLog, ActivityLog, DataQualityMetrics
@@ -287,6 +288,9 @@ def trigger_user_added_notification(sender, instance, created, **kwargs):
     """
     from .tasks import send_user_added_notification
     
+    if not getattr(settings, 'ENABLE_ASYNC_SIGNAL_DISPATCH', False):
+        return
+
     if created and instance.status == 'active':
         # Async task to send notifications to all members
         send_user_added_notification.delay(
@@ -304,6 +308,9 @@ def trigger_user_removed_notification(sender, instance, **kwargs):
     """
     from .tasks import send_user_removed_notification
     
+    if not getattr(settings, 'ENABLE_ASYNC_SIGNAL_DISPATCH', False):
+        return
+
     if instance.status == 'active':
         # Get the user who initiated the removal (from context if available)
         removed_by_id = getattr(instance, '_removed_by_id', 1)

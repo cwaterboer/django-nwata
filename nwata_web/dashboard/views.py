@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 import json
 from .profile_forms import ProfileUpdateForm
+from .entitlements import resolve_dashboard_entitlements
+from .billing import build_subscription_snapshot
 
 def get_period_dates(period, reference_date):
     """Get date ranges for current and previous periods"""
@@ -140,7 +142,7 @@ def create_app_comparison(current_stats, previous_stats, period):
     return comparison
 
 @login_required
-def dashboard(request):
+def dashboard(request, analytics_view_override=''):
     now = datetime.now()
     today = now.date()
     week_start = today - timedelta(days=today.weekday())
@@ -318,9 +320,20 @@ def dashboard(request):
     ).values('created_at__date').distinct().count()
     weekly_streak = week_activity_days
 
+    analytics_view = (analytics_view_override or request.GET.get('view', '')).strip().lower()
+    valid_analytics_views = {'apps', 'activity', 'insights'}
+    if analytics_view not in valid_analytics_views:
+        analytics_view = ''
+
+    entitlements = resolve_dashboard_entitlements(request.user, org)
+    subscription = build_subscription_snapshot(org, entitlements)
+
     context = {
         'org': org,
         'current_user': request.user,
+        'analytics_view': analytics_view,
+        'entitlements': entitlements,
+        'subscription': subscription,
         'active_users_today': active_users_today,
         'total_focus_hours': total_focus_hours,
         'avg_focus_percent': avg_focus_percent,
@@ -343,6 +356,24 @@ def dashboard(request):
     }
 
     return render(request, 'dashboard/dashboard.html', context)
+
+
+@login_required
+def analytics_app_usage(request):
+    """Dedicated page for App Usage analytics."""
+    return dashboard(request, analytics_view_override='apps')
+
+
+@login_required
+def analytics_activity_feed(request):
+    """Dedicated page for Activity Feed analytics."""
+    return dashboard(request, analytics_view_override='activity')
+
+
+@login_required
+def analytics_insights(request):
+    """Dedicated page for Insights analytics."""
+    return dashboard(request, analytics_view_override='insights')
 
 
 @login_required

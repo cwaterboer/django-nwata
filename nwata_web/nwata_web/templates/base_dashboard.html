@@ -244,9 +244,23 @@
 
             <ul class="sidebar-menu">
                 <li class="menu-section">Overview</li>
-                <li class="menu-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" onclick="window.location.href=window.dashboardUrl">
+                <li class="menu-item {% if request.resolver_match.url_name == 'dashboard' and not request.GET.view %}active{% endif %}" onclick="window.location.href=window.dashboardUrl">
                     <span class="menu-icon material-icons">dashboard</span>
                     <span class="menu-label">Dashboard</span>
+                </li>
+
+                <li class="menu-section">Analytics</li>
+                <li class="menu-item {% if request.resolver_match.url_name == 'analytics_app_usage' or request.resolver_match.url_name == 'dashboard' and request.GET.view == 'apps' %}active{% endif %}" onclick="window.location.href=window.appsUrl">
+                    <span class="menu-icon material-icons">apps</span>
+                    <span class="menu-label">App Usage</span>
+                </li>
+                <li class="menu-item {% if request.resolver_match.url_name == 'analytics_activity_feed' or request.resolver_match.url_name == 'dashboard' and request.GET.view == 'activity' %}active{% endif %}" onclick="window.location.href=window.activityUrl">
+                    <span class="menu-icon material-icons">timeline</span>
+                    <span class="menu-label">Activity Feed</span>
+                </li>
+                <li class="menu-item {% if request.resolver_match.url_name == 'analytics_insights' or request.resolver_match.url_name == 'dashboard' and request.GET.view == 'insights' %}active{% endif %}" onclick="window.location.href=window.insightsUrl">
+                    <span class="menu-icon material-icons">insights</span>
+                    <span class="menu-label">Insights</span>
                 </li>
                 
                 <!-- Organization Section (for all authenticated users) -->
@@ -307,6 +321,9 @@
         // URL constants for sidebar navigation
         const urls = {
             dashboard: '{% url "dashboard" %}',
+            apps: '{% url "analytics_app_usage" %}',
+            activity: '{% url "analytics_activity_feed" %}',
+            insights: '{% url "analytics_insights" %}',
             org_settings: '{% url "org_settings" %}?tab=general',
             device_setup: '{% url "device_setup" %}',
             profile: '{% url "profile" %}',
@@ -315,6 +332,9 @@
         
         // Store in window for use in onclick handlers
         window.dashboardUrl = urls.dashboard;
+        window.appsUrl = urls.apps;
+        window.activityUrl = urls.activity;
+        window.insightsUrl = urls.insights;
         window.orgSettingsUrl = urls.org_settings;
         window.deviceSetupUrl = urls.device_setup;
         window.profileUrl = urls.profile;

@@ -73,7 +73,7 @@
 }
 
 .app-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff6600 0%, #ea580c 100%);
     color: white;
     padding: 20px;
     border-radius: 12px;
@@ -157,7 +157,7 @@
 }
 
 .hour-block:hover {
-    border-color: #667eea;
+    border-color: #ff6600;
     transform: translateY(-2px);
 }
 
@@ -327,6 +327,39 @@
     color: #ffc107;
 }
 
+.premium-gate {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+}
+
+.premium-gate-title {
+    font-weight: 700;
+    color: #9a3412;
+}
+
+.premium-gate-text {
+    font-size: 0.9em;
+    color: #7c2d12;
+}
+
+.premium-gate-btn {
+    border: 1px solid #fb923c;
+    background: #fff;
+    color: #9a3412;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: not-allowed;
+    white-space: nowrap;
+}
+
 .comparison-card .current-stats {
     margin-bottom: 15px;
     padding: 10px;
@@ -442,6 +475,15 @@ let currentPeriod = '{{ current_period|escapejs }}';
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    const appChartCanvas = document.getElementById('appUsageChart');
+    const periodSelect = document.getElementById('period-select');
+    const appSelectorDropdown = document.getElementById('app-selector-dropdown');
+
+    // App usage controls only exist on the App Usage analytics page.
+    if (!appChartCanvas) {
+        return;
+    }
+
     // Get all initially selected apps
     document.querySelectorAll('.app-checkbox:checked').forEach(checkbox => {
         selectedApps.push(checkbox.value);
@@ -452,17 +494,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
-        const dropdown = document.getElementById('app-selector-dropdown');
         const selector = document.querySelector('.app-selector');
+        if (!selector || !appSelectorDropdown) {
+            return;
+        }
         if (!selector.contains(e.target)) {
-            dropdown.style.display = 'none';
+            appSelectorDropdown.style.display = 'none';
         }
     });
 
     // Period selector change handler
-    document.getElementById('period-select').addEventListener('change', function() {
-        loadAppComparisonData(this.value);
-    });
+    if (periodSelect) {
+        periodSelect.addEventListener('change', function() {
+            loadAppComparisonData(this.value);
+        });
+    }
 });
 
 // Switch between chart and cards view
@@ -471,6 +517,10 @@ function switchView(viewType) {
     const cardsContainer = document.getElementById('cards-container');
     const chartBtn = document.getElementById('chart-view-btn');
     const cardsBtn = document.getElementById('cards-view-btn');
+
+    if (!chartContainer || !cardsContainer || !chartBtn || !cardsBtn) {
+        return;
+    }
 
     if (viewType === 'chart') {
         chartContainer.style.display = 'block';
@@ -490,6 +540,9 @@ function switchView(viewType) {
 // Change chart type
 function changeChartType() {
     const chartTypeSelect = document.getElementById('chart-type');
+    if (!chartTypeSelect) {
+        return;
+    }
     currentChartType = chartTypeSelect.value;
     createChart();
 }
@@ -497,6 +550,9 @@ function changeChartType() {
 // Toggle app selector dropdown
 function toggleAppSelector() {
     const dropdown = document.getElementById('app-selector-dropdown');
+    if (!dropdown) {
+        return;
+    }
     dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
 }
 
@@ -504,6 +560,10 @@ function toggleAppSelector() {
 function toggleAllApps() {
     const selectAllCheckbox = document.getElementById('select-all-apps');
     const appCheckboxes = document.querySelectorAll('.app-checkbox');
+
+    if (!selectAllCheckbox || !appCheckboxes.length) {
+        return;
+    }
 
     appCheckboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
@@ -523,6 +583,9 @@ function updateSelectedApps() {
     // Update select all checkbox state
     const selectAllCheckbox = document.getElementById('select-all-apps');
     const totalApps = document.querySelectorAll('.app-checkbox').length;
+    if (!selectAllCheckbox) {
+        return;
+    }
     selectAllCheckbox.checked = selectedApps.length === totalApps;
     selectAllCheckbox.indeterminate = selectedApps.length > 0 && selectedApps.length < totalApps;
 }
@@ -560,6 +623,9 @@ function loadAppComparisonData(period) {
 // Update app selector checkboxes based on new data
 function updateAppSelectorCheckboxes() {
     const dropdown = document.getElementById('app-selector-dropdown');
+    if (!dropdown) {
+        return;
+    }
     
     // Clear existing checkboxes (except select all)
     const existingCheckboxes = dropdown.querySelectorAll('.app-checkbox');
@@ -600,6 +666,9 @@ function updateAppSelectorCheckboxes() {
 // Update cards view with new data
 function updateCardsView() {
     const cardsContainer = document.getElementById('cards-container');
+    if (!cardsContainer) {
+        return;
+    }
     cardsContainer.innerHTML = '';
     
     if (currentAppData.length === 0) {
@@ -654,7 +723,11 @@ function updateCardsView() {
 
 // Create or update the chart
 function createChart() {
-    const ctx = document.getElementById('appUsageChart').getContext('2d');
+    const canvas = document.getElementById('appUsageChart');
+    if (!canvas) {
+        return;
+    }
+    const ctx = canvas.getContext('2d');
 
     // Destroy existing chart
     if (appUsageChart) {
@@ -785,82 +858,52 @@ function generateColors(count) {
     return colors;
 }
 
-// Switch canvas function (existing)
-function switchCanvas(canvasId) {
-    // Hide all canvases
-    document.querySelectorAll('.canvas-section').forEach(canvas => {
-        canvas.classList.remove('active');
-    });
-    
-    // Show selected canvas
-    document.getElementById(canvasId).classList.add('active');
-    
-    // Update tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-}
 </script>
 {% endblock %}
 
 {% block content %}
-<!-- Canvas Navigation Tabs -->
-<div class="canvas-tabs">
-    <button class="tab-btn active" onclick="switchCanvas('overview')">Overview</button>
-    <button class="tab-btn" onclick="switchCanvas('apps')">App Usage</button>
-    <button class="tab-btn" onclick="switchCanvas('activity')">Activity Feed</button>
-    <button class="tab-btn" onclick="switchCanvas('insights')">Insights</button>
-</div>
-
-<!-- Overview Canvas -->
-<div id="overview" class="canvas-section active">
-    <!-- KPI Summary Cards -->
-    <div class="summary-cards">
+{% if analytics_view == 'apps' %}
+<div class="canvas-area">
+    <div class="section-title">Application Usage</div>
+    <div class="summary-cards" style="margin-bottom: 20px;">
         <div class="kpi-card">
-            <div class="kpi-label">Active Users Today</div>
-            <div class="kpi-value">{{ active_users_today }}</div>
-            <div class="kpi-subtext">out of {{ total_users }} users</div>
+            <div class="kpi-label">Tracked Apps</div>
+            <div class="kpi-value">{{ app_comparison|length }}</div>
+            <div class="kpi-subtext">in {{ current_period|title }} period</div>
         </div>
-
         <div class="kpi-card">
-            <div class="kpi-label">Total Focus Hours</div>
-            <div class="kpi-value">{{ total_focus_hours }}</div>
-            <div class="kpi-subtext">tracked today</div>
+            <div class="kpi-label">Activities Today</div>
+            <div class="kpi-value">{{ activity_count_today }}</div>
+            <div class="kpi-subtext">captured events</div>
         </div>
-
         <div class="kpi-card">
-            <div class="kpi-label">Average Focus %</div>
-            <div class="kpi-value">{{ avg_focus_percent }}%</div>
-            <div class="kpi-subtext">of 8-hour target</div>
+            <div class="kpi-label">Top App</div>
+            <div class="kpi-value" style="font-size: 1.6em;">{% if app_comparison %}{{ app_comparison.0.app_name }}{% else %}N/A{% endif %}</div>
+            <div class="kpi-subtext">highest engagement</div>
         </div>
-
         <div class="kpi-card">
-            <div class="kpi-label">Weekly Streak</div>
-            <div class="kpi-value">{{ weekly_streak }}</div>
-            <div class="kpi-subtext">days with activity</div>
+            <div class="kpi-label">Total Focus</div>
+            <div class="kpi-value">{{ total_focus_hours }}h</div>
+            <div class="kpi-subtext">today</div>
         </div>
     </div>
 
-    <!-- Hourly Timeline -->
-    <div class="canvas-area">
-        <div class="section-title">Today's Hourly Breakdown</div>
-        <div class="hourly-timeline">
-            {% for hour_stat in hourly_breakdown %}
-            <div class="hour-block">
-                <div class="hour-label">{{ hour_stat.hour }}:00</div>
-                <div class="hour-count">{{ hour_stat.count }}</div>
-                <div class="hour-duration">{{ hour_stat.duration }}m</div>
-            </div>
-            {% endfor %}
+    <div class="premium-gate">
+        <div>
+            <div class="premium-gate-title">Premium Analytics Export</div>
+            <div class="premium-gate-text" style="font-size: 0.82em; margin-bottom: 4px;">Plan: {{ subscription.plan }} | Status: {{ subscription.status }}</div>
+            {% if entitlements.can_access_premium_analytics %}
+            <div class="premium-gate-text">Your plan includes advanced analytics. CSV export endpoint wiring is next.</div>
+            {% else %}
+            <div class="premium-gate-text">CSV export and advanced trend reports are available on Pro team plans.</div>
+            {% endif %}
         </div>
+        {% if entitlements.can_access_premium_analytics %}
+        <a class="premium-gate-btn" href="{% url 'org_settings' %}?tab=general" style="cursor: pointer; text-decoration: none;">Manage Plan</a>
+        {% else %}
+        <button class="premium-gate-btn" disabled aria-disabled="true">Upgrade Required</button>
+        {% endif %}
     </div>
-</div>
-
-<!-- App Usage Canvas -->
-<div id="apps" class="canvas-section">
-    <div class="canvas-area">
-        <div class="section-title">Application Usage Comparison</div>
 
         <!-- Chart Controls -->
         <div class="chart-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
@@ -977,100 +1020,207 @@ function switchCanvas(canvasId) {
             </div>
             {% endfor %}
         </div>
-    </div>
 </div>
-
-<!-- Activity Feed Canvas -->
-<div id="activity" class="canvas-section">
-    <div class="canvas-area">
-        <div class="section-title">Recent Activity</div>
-        <div class="activity-feed">
-            {% for activity in recent_activities %}
-            <div class="activity-item">
-                <div class="activity-details">
-                    <div class="activity-app">{{ activity.app_name }}</div>
-                    <div class="activity-window">{{ activity.window_title|truncatechars:60 }}</div>
-                    {% if activity.context %}
-                    <div class="activity-context" style="font-size: 0.85em; color: #999; margin-top: 5px;">
-                        ⌨️ {{ activity.typing_count }} keys
-                        🖱️ {{ activity.scroll_count }} scrolls
-                        {% if activity.shortcut_count > 0 %}<span class="material-icons md-18">flash_on</span> {{ activity.shortcut_count }} shortcuts{% endif %}
-                        {% if activity.idle_seconds > 1 %}⏸️ {{ activity.idle_seconds }}s idle{% endif %}
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="activity-time">
-                    <div>{{ activity.created_at|timesince }} ago</div>
-                    <div style="font-size: 0.8em; color: #999;">{{ activity.duration_display }}m</div>
-                </div>
-            </div>
-            {% empty %}
-            <p style="color: #666; padding: 20px;">No recent activity to display. Start tracking to see your activity feed!</p>
-            {% endfor %}
+{% elif analytics_view == 'activity' %}
+<div class="canvas-area">
+    <div class="section-title">Activity Feed</div>
+    <div class="summary-cards" style="margin-bottom: 20px;">
+        <div class="kpi-card">
+            <div class="kpi-label">Recent Events</div>
+            <div class="kpi-value">{{ recent_activities|length }}</div>
+            <div class="kpi-subtext">latest records shown</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Total Time Today</div>
+            <div class="kpi-value">{{ total_focus_hours }}h</div>
+            <div class="kpi-subtext">all app sessions</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Weekly Streak</div>
+            <div class="kpi-value">{{ weekly_streak }}</div>
+            <div class="kpi-subtext">days with activity</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Top Application</div>
+            <div class="kpi-value" style="font-size: 1.6em;">{% if app_stats %}{{ app_stats.0.app_name }}{% else %}N/A{% endif %}</div>
+            <div class="kpi-subtext">most used in period</div>
         </div>
     </div>
-</div>
 
-<!-- Insights Canvas -->
-<div id="insights" class="canvas-section">
-    <div class="canvas-area">
-        <div class="section-title">Productivity Insights</div>
-        
-        {% if weekly_streak >= 5 %}
-            <div class="insight-card">
-                <div class="insight-title"><span class="material-icons md-18">flash_on</span> Weekly Streak</div>
-                <div class="insight-text">
-                    You've logged activity for 
-                    <span class="insight-metric">{{ weekly_streak }} days</span>
-                    this week. Excellent consistency!
+    <div class="activity-feed">
+        {% for activity in recent_activities %}
+        <div class="activity-item">
+            <div class="activity-details">
+                <div class="activity-app">{{ activity.app_name }}</div>
+                <div class="activity-window">{{ activity.window_title|truncatechars:60 }}</div>
+                {% if activity.context %}
+                <div class="activity-context" style="font-size: 0.85em; color: #999; margin-top: 5px;">
+                    ⌨️ {{ activity.typing_count }} keys
+                    🖱️ {{ activity.scroll_count }} scrolls
+                    {% if activity.shortcut_count > 0 %}<span class="material-icons md-18">flash_on</span> {{ activity.shortcut_count }} shortcuts{% endif %}
+                    {% if activity.idle_seconds > 1 %}⏸️ {{ activity.idle_seconds }}s idle{% endif %}
                 </div>
+                {% endif %}
             </div>
-
-            {% if app_stats %}
-            <div class="insight-card">
-                <div class="insight-title"><span class="material-icons md-18">phone_iphone</span> Top Application Today</div>
-                <div class="insight-text">
-                    You spent most of your time in 
-                    <span class="insight-metric">{{ app_stats.0.app_name }}</span>
-                    with <span class="insight-metric">{{ app_stats.0.total_duration|default:0 }} minutes</span> logged across {{ app_stats.0.count|default:0 }} activities.
-                </div>
+            <div class="activity-time">
+                <div>{{ activity.created_at|timesince }} ago</div>
+                <div style="font-size: 0.8em; color: #999;">{{ activity.duration_display }}m</div>
             </div>
-            {% endif %}
-
-            <div class="insight-card">
-                <div class="insight-title"><span class="material-icons md-18">bar_chart</span> Today's Summary</div>
-                <div class="insight-text">
-                    Today: <span class="insight-metric">{{ total_focus_hours }}h total</span> across 
-                    <span class="insight-metric">{{ activity_count_today }} activities</span>.
-                    {% if app_stats|length > 0 %}
-                        You used <span class="insight-metric">{{ app_stats|length }} different apps</span>.
-                    {% endif %}
-                </div>
-            </div>
-
-            {% if hourly_breakdown %}
-            <div class="insight-card">
-                <div class="insight-title"><span class="material-icons md-18">rocket</span> Peak Activity</div>
-                <div class="insight-text">
-                    Most activity logged around 
-                    <span class="insight-metric">{{ hourly_breakdown.0.hour }}:00</span>
-                    with <span class="insight-metric">{{ hourly_breakdown.0.count }} activities</span>.
-                </div>
-            </div>
-            {% endif %}
-        {% else %}
-            <div class="insight-card" style="border-left-color: #ffc107;">
-                <div class="insight-title"><span class="material-icons md-18">bar_chart</span> Insights Coming Soon</div>
-                <div class="insight-text">
-                    Keep tracking! Insights will be available after you've logged activity for at least 5 days.
-                    <br><br>
-                    Current progress: <span class="insight-metric">{{ weekly_streak }} day{% if weekly_streak != 1 %}s{% endif %}</span> this week.
-                    {% if weekly_streak > 0 %}
-                        Just <span class="insight-metric">{{ 5|add:"-"|add:weekly_streak }} more day{% if 5|add:"-"|add:weekly_streak != 1 %}s{% endif %}</span> to go!
-                    {% endif %}
-                </div>
-            </div>
-        {% endif %}
+        </div>
+        {% empty %}
+        <p style="color: #666; padding: 20px;">No recent activity to display. Start tracking to see your activity feed!</p>
+        {% endfor %}
     </div>
 </div>
+{% elif analytics_view == 'insights' %}
+<div class="canvas-area">
+    <div class="section-title">Insights</div>
+    <div class="summary-cards" style="margin-bottom: 20px;">
+        <div class="kpi-card">
+            <div class="kpi-label">Focus Score</div>
+            <div class="kpi-value">{{ avg_focus_percent }}%</div>
+            <div class="kpi-subtext">of target goal</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Weekly Streak</div>
+            <div class="kpi-value">{{ weekly_streak }}</div>
+            <div class="kpi-subtext">consecutive active days</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Tracked Apps</div>
+            <div class="kpi-value">{{ app_stats|length }}</div>
+            <div class="kpi-subtext">in current period</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Activities</div>
+            <div class="kpi-value">{{ activity_count_today }}</div>
+            <div class="kpi-subtext">logged today</div>
+        </div>
+    </div>
+
+    {% if weekly_streak >= 5 %}
+        <div class="insight-card">
+            <div class="insight-title"><span class="material-icons md-18">flash_on</span> Weekly Streak</div>
+            <div class="insight-text">
+                You've logged activity for 
+                <span class="insight-metric">{{ weekly_streak }} days</span>
+                this week. Excellent consistency!
+            </div>
+        </div>
+
+        {% if app_stats %}
+        <div class="insight-card">
+            <div class="insight-title"><span class="material-icons md-18">phone_iphone</span> Top Application Today</div>
+            <div class="insight-text">
+                You spent most of your time in 
+                <span class="insight-metric">{{ app_stats.0.app_name }}</span>
+                with <span class="insight-metric">{{ app_stats.0.total_duration|default:0 }} minutes</span> logged across {{ app_stats.0.count|default:0 }} activities.
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="insight-card">
+            <div class="insight-title"><span class="material-icons md-18">bar_chart</span> Today's Summary</div>
+            <div class="insight-text">
+                Today: <span class="insight-metric">{{ total_focus_hours }}h total</span> across 
+                <span class="insight-metric">{{ activity_count_today }} activities</span>.
+                {% if app_stats|length > 0 %}
+                    You used <span class="insight-metric">{{ app_stats|length }} different apps</span>.
+                {% endif %}
+            </div>
+        </div>
+
+        {% if hourly_breakdown %}
+        <div class="insight-card">
+            <div class="insight-title"><span class="material-icons md-18">rocket</span> Peak Activity</div>
+            <div class="insight-text">
+                Most activity logged around 
+                <span class="insight-metric">{{ hourly_breakdown.0.hour }}:00</span>
+                with <span class="insight-metric">{{ hourly_breakdown.0.count }} activities</span>.
+            </div>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="insight-card" style="border-left-color: #ffc107;">
+            <div class="insight-title"><span class="material-icons md-18">bar_chart</span> Insights Coming Soon</div>
+            <div class="insight-text">
+                Keep tracking! Insights will be available after you've logged activity for at least 5 days.
+                <br><br>
+                Current progress: <span class="insight-metric">{{ weekly_streak }} day{% if weekly_streak != 1 %}s{% endif %}</span> this week.
+                {% if weekly_streak > 0 %}
+                    Just <span class="insight-metric">{{ 5|add:"-"|add:weekly_streak }} more day{% if 5|add:"-"|add:weekly_streak != 1 %}s{% endif %}</span> to go!
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="summary-cards">
+    <div class="kpi-card">
+        <div class="kpi-label">Active Users Today</div>
+        <div class="kpi-value">{{ active_users_today }}</div>
+        <div class="kpi-subtext">out of {{ total_users }} users</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Total Focus Hours</div>
+        <div class="kpi-value">{{ total_focus_hours }}</div>
+        <div class="kpi-subtext">tracked today</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Average Focus %</div>
+        <div class="kpi-value">{{ avg_focus_percent }}%</div>
+        <div class="kpi-subtext">of 8-hour target</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Weekly Streak</div>
+        <div class="kpi-value">{{ weekly_streak }}</div>
+        <div class="kpi-subtext">days with activity</div>
+    </div>
+</div>
+
+<div class="canvas-area">
+    <div class="section-title">Today's Hourly Breakdown</div>
+    <div class="hourly-timeline">
+        {% for hour_stat in hourly_breakdown %}
+        <div class="hour-block">
+            <div class="hour-label">{{ hour_stat.hour }}:00</div>
+            <div class="hour-count">{{ hour_stat.count }}</div>
+            <div class="hour-duration">{{ hour_stat.duration }}m</div>
+        </div>
+        {% empty %}
+        <p style="color: #666; padding: 20px;">No hourly activity yet today.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="canvas-area">
+    <div class="section-title">Analytics Drilldowns</div>
+    <div class="comparison-grid">
+        <a href="{% url 'analytics_app_usage' %}" class="comparison-card" style="text-decoration: none; color: inherit;">
+            <div class="app-header">
+                <h3>App Usage</h3>
+                <span class="material-icons trend-up">arrow_forward</span>
+            </div>
+            <div class="insight-text">Deep dive into app trends, period-over-period comparison, and performance breakdowns.</div>
+        </a>
+        <a href="{% url 'analytics_activity_feed' %}" class="comparison-card" style="text-decoration: none; color: inherit;">
+            <div class="app-header">
+                <h3>Activity Feed</h3>
+                <span class="material-icons trend-up">arrow_forward</span>
+            </div>
+            <div class="insight-text">Inspect detailed event streams, engagement patterns, and recent execution timelines.</div>
+        </a>
+        <a href="{% url 'analytics_insights' %}" class="comparison-card" style="text-decoration: none; color: inherit;">
+            <div class="app-header">
+                <h3>Insights</h3>
+                <span class="material-icons trend-up">arrow_forward</span>
+            </div>
+            <div class="insight-text">Review synthesized productivity signals and trend intelligence for monetizable analytics.</div>
+        </a>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

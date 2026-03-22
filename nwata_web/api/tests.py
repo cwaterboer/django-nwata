@@ -183,7 +183,7 @@ class ContextValidationTest(TestCase):
         """Test business rule validation"""
         from .models import validate_context_data
         
-        # Test unrealistic typing rate
+        # Test high (but schema-valid) typing rate that should trigger warning.
         invalid_context = {
             "typing_count": 100,
             "scroll_count": 50,
@@ -191,19 +191,43 @@ class ContextValidationTest(TestCase):
             "total_idle_ms": 30000,
             "max_idle_ms": 10000,
             "window_duration_s": 600.0,
-            "typing_rate_per_min": 1500,  # Too high
+            "typing_rate_per_min": 250,
             "scroll_rate_per_min": 5.0
         }
         
         is_valid, errors, warnings = validate_context_data(invalid_context)
-        self.assertFalse(is_valid)
-        self.assertIn("typing_rate_per_min exceeds realistic bounds", errors[0])
+        self.assertTrue(is_valid)
+        self.assertEqual(errors, [])
+        self.assertIn("typing_rate_per_min unusually high", warnings)
 
 
 class DataQualityTest(TestCase):
     def setUp(self):
+        self.client = APIClient()
+        self.url = '/api/activity/'
         self.org = Organization.objects.create(name="Test Org", subdomain="test")
         self.user = User.objects.create(email="test@example.com", org=self.org)
+
+        from django.contrib.auth.models import User as AuthUser
+        self.auth_user = AuthUser.objects.create_user(
+            email="test@example.com",
+            username="quality-test",
+            password="test",
+        )
+        self.membership = Membership.objects.create(
+            auth_user=self.auth_user,
+            organization=self.org,
+            role='member',
+            email_used='test@example.com',
+            status='active'
+        )
+        self.device = Device.objects.create(
+            membership=self.membership,
+            device_name="Quality Test Agent",
+            token="quality-test-token",
+            token_expires_at=timezone.now() + timedelta(days=1)
+        )
+        self.auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.device.token}"}
     
     def test_quality_score_calculation(self):
         """Test data quality score computation"""

@@ -7,6 +7,9 @@ from .org_admin_views import (
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
+    path('analytics/apps/', views.analytics_app_usage, name='analytics_app_usage'),
+    path('analytics/activity/', views.analytics_activity_feed, name='analytics_activity_feed'),
+    path('analytics/insights/', views.analytics_insights, name='analytics_insights'),
     path('api/app-comparison/', views.get_app_comparison_data, name='app_comparison_data'),
     path('profile/', views.profile_view, name='profile'),
     path('profile/change-password/', views.change_password_view, name='change_password'),
